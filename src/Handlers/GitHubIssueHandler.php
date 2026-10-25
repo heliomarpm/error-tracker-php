@@ -4,6 +4,7 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Severity;
 
 class GitHubIssueHandler implements HandlerInterface
 {
@@ -14,6 +15,7 @@ class GitHubIssueHandler implements HandlerInterface
    * @param string $token Token de Acesso Pessoal (PAT) do GitHub.
    * @param string $repository Repositório no formato "usuario/repo" (ex: "heliomarpm/error-tracker").
    * @param string $application Nome da aplicação.
+   * @param array<Severity>|null $notifySeverities Níveis de severidade que disparam issue (null notifica todos).
    * @param int $timeoutSeconds Timeout da requisição cURL em segundos.
    * @param bool $deduplicateOpenIssues Se true, busca issue aberta com o mesmo hash e adiciona comentário em vez de duplicar.
    * @param (callable(ErrorContext): string)|null $bodyFormatter Formatador customizado para o corpo da issue em Markdown.
@@ -22,6 +24,7 @@ class GitHubIssueHandler implements HandlerInterface
       private readonly string $token,
       private readonly string $repository,
       private readonly string $application = 'ErrorTracker',
+      private readonly ?array $notifySeverities = [Severity::CRITICAL, Severity::WARNING],
       private readonly int $timeoutSeconds = 3,
       private readonly bool $deduplicateOpenIssues = true,
       ?callable $bodyFormatter = null
@@ -58,6 +61,10 @@ class GitHubIssueHandler implements HandlerInterface
 
   public function report(ErrorContext $context): void
   {
+    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+      return;
+    }
+
     $url = "https://api.github.com/repos/{$this->repository}/issues";
 
     $title = $this->renderTitle($context);

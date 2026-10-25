@@ -5,6 +5,7 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
+use HeliomarPM\ErrorTracker\Severity;
 
 class FilelogHandler implements HandlerInterface
 {
@@ -18,11 +19,13 @@ class FilelogHandler implements HandlerInterface
   /**
    * @param string $logDirectory O diretório onde serão armazenados os logs.
    * @param string|null $templateOrPath Caminho do arquivo de template ou string customizada.
+   * @param array<Severity>|null $notifySeverities Níveis de severidade que gravam log (null grava todas).
    * @param (callable(ErrorContext): string)|null $formatter Callback customizado para formatação.
    */
   public function __construct(
       string $logDirectory,
       ?string $templateOrPath = null,
+      private readonly ?array $notifySeverities = null,
       ?callable $formatter = null
   ) {
     $this->logDirectory = rtrim($logDirectory, '/\\');
@@ -38,6 +41,10 @@ class FilelogHandler implements HandlerInterface
 
   public function report(ErrorContext $context): void
   {
+    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+      return;
+    }
+
     $logEntry = $this->renderEntry($context);
 
     // Nome do arquivo rotacionado por dia e severidade

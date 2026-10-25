@@ -4,6 +4,7 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Severity;
 use PDO;
 use PDOException;
 
@@ -15,11 +16,13 @@ class DatabaseHandler implements HandlerInterface
    * @param PDO $pdo Instância de conexão PDO.
    * @param string $tableName Nome da tabela de erros.
    * @param bool $autoCreate Se true, tenta criar a tabela automaticamente caso não exista.
+   * @param array<Severity>|null $notifySeverities Níveis de severidade que persistem no banco (null persiste todas).
    */
   public function __construct(
       private readonly PDO $pdo,
       private readonly string $tableName = "error_tracker",
-      private readonly bool $autoCreate = false
+      private readonly bool $autoCreate = false,
+      private readonly ?array $notifySeverities = null
   ) {}
 
   public function report(ErrorContext $context): void
@@ -28,6 +31,10 @@ class DatabaseHandler implements HandlerInterface
     if ($this->autoCreate && !$this->tableChecked) {
       $this->createTableIfNotExists();
       $this->tableChecked = true;
+    }
+
+    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+      return;
     }
 
     $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);

@@ -50,6 +50,18 @@ class WebhookHandlerTest extends TestCase
         $this->assertSame('Alerta genérico', $payload['message']);
         $this->assertSame($context->hash, $payload['hash']);
     }
+
+    public function testIgnoresNonConfiguredSeverity(): void
+    {
+        $this->expectNotToPerformAssertions();
+
+        // Webhook com URL inválida que quebraria se tentasse enviar cURL
+        $handler = new WebhookHandler('http://invalid.local', notifySeverities: [Severity::CRITICAL]);
+        $context = $this->createContext('Evento leve de info', Severity::INFO);
+
+        // Não deve tentar disparar cURL nem lançar exceção
+        $handler->report($context);
+    }
     private function createContext(string $message = 'Falha no pagamento', Severity $severity = Severity::CRITICAL): ErrorContext
     {
         return new ErrorContext(

@@ -50,6 +50,22 @@ class GitHubIssueHandlerTest extends TestCase
 
         $this->assertSame('CUSTOM: Custom message (WARNING)', $body);
     }
+
+    public function testIgnoresNonConfiguredSeverity(): void
+    {
+        $this->expectNotToPerformAssertions();
+
+        $handler = new GitHubIssueHandler(
+            token: 'fake_token',
+            repository: 'heliomarpm/nonexistent-repo',
+            notifySeverities: [Severity::CRITICAL]
+        );
+
+        $context = $this->createContext('Warning message', Severity::WARNING);
+
+        // Deve retornar imediatamente sem tentar disparar rede
+        $handler->report($context);
+    }
     private function createContext(string $message = 'Falha de conexão', Severity $severity = Severity::CRITICAL): ErrorContext
     {
         return new ErrorContext(

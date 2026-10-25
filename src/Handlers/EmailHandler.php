@@ -18,7 +18,7 @@ class EmailHandler implements HandlerInterface
   /**
    * @param string $to O e-mail da equipe de suporte (ex: email.tech@gmail.com).
    * @param string $from O remetente do e-mail (ex: noreply@errortracker.com.br).
-   * @param array<Severity> $notifySeverities Array com os níveis de erro que disparam e-mail.
+   * @param array<Severity>|null $notifySeverities Array com os níveis de erro que disparam e-mail (null notifica todos).
    * @param string $format Formato de envio: 'html' ou 'text'.
    * @param string|null $templateOrPath Caminho do arquivo de template ou string customizada.
    * @param string $subjectTemplate Template do assunto com tags (ex: 🚨 [{{severity}}] {{message}}).
@@ -27,7 +27,7 @@ class EmailHandler implements HandlerInterface
   public function __construct(
       private readonly string $to,
       private readonly string $from = 'noreply@errortracker.com.br',
-      private readonly array $notifySeverities = [Severity::CRITICAL],
+      private readonly ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'html',
       ?string $templateOrPath = null,
       private readonly string $subjectTemplate = '🚨 [{{severity}}] Incidente Detectado: {{message}}',
@@ -46,7 +46,7 @@ class EmailHandler implements HandlerInterface
   public function report(ErrorContext $context): void
   {
     // 1. Filtro de Severidade
-    if (!in_array($context->severity, $this->notifySeverities, true)) {
+    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
       return;
     }
 

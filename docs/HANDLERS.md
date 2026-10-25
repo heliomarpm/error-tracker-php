@@ -27,6 +27,15 @@ $tracker->addHandler($handler);
 ```
 
 * `autoCreate = true`: Cria a tabela e índices automaticamente na primeira execução se ainda não existirem.
+* `notifySeverities`: Array com os níveis de severidade aceitos (ex: `[Severity::CRITICAL, Severity::WARNING]`). Se omitido ou `null`, persiste todos os incidentes.
+
+```php
+// Exemplo: persistir apenas avisos e falhas críticas
+$handler = new DatabaseHandler(
+    pdo: $pdo,
+    notifySeverities: [Severity::CRITICAL, Severity::WARNING]
+);
+```
 
 ### Estrutura da Tabela e Índices
 
@@ -119,11 +128,13 @@ Abre issues automaticamente no repositório GitHub da equipe com títulos format
 
 ```php
 use HeliomarPM\ErrorTracker\Handlers\GitHubIssueHandler;
+use HeliomarPM\ErrorTracker\Severity;
 
 $handler = new GitHubIssueHandler(
     token: 'github_pat_...',
     repository: 'heliomarpm/meu-projeto',
     application: 'MeuApp Produção',
+    notifySeverities: [Severity::CRITICAL, Severity::WARNING], // padrão: [CRITICAL, WARNING]
     timeoutSeconds: 3
 );
 
@@ -158,10 +169,17 @@ $tracker->addHandler($handler);
 Grava logs estruturados em disco com rotação diária automática por severidade e bloqueio exclusivo concorrente (`LOCK_EX`).
 Por padrão, utiliza o template `filelog.tpl`, gerando cabeçalhos de diagnóstico limpos (tipo de erro, causa raiz encadeada, usuário, memória, hash e stack trace simplificado).
 
+* `notifySeverities`: Níveis gravados em disco (ex: `[Severity::CRITICAL, Severity::WARNING]`). Se omitido ou `null`, grava todas as severidades.
+
 ```php
 use HeliomarPM\ErrorTracker\Handlers\FilelogHandler;
+use HeliomarPM\ErrorTracker\Severity;
 
-$handler = new FilelogHandler(__DIR__ . '/storage/logs');
+// Gravar apenas falhas críticas e avisos
+$handler = new FilelogHandler(
+    logDirectory: __DIR__ . '/storage/logs',
+    notifySeverities: [Severity::CRITICAL, Severity::WARNING]
+);
 $tracker->addHandler($handler);
 ```
 

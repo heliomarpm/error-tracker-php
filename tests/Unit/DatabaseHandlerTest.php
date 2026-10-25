@@ -88,4 +88,30 @@ final class DatabaseHandlerTest extends TestCase
         $this->assertSame('Heliomar Dev', $row['user_name']);
         $this->assertStringContainsString('199.9', $row['payload']);
     }
+
+    public function testFiltersBySeverity(): void
+    {
+        $filteredHandler = new DatabaseHandler(
+            $this->pdo,
+            tableName: 'test_errors_filter',
+            autoCreate: true,
+            notifySeverities: [Severity::CRITICAL, Severity::WARNING]
+        );
+
+        // 1. Erro com severidade INFO (deve ser descartado)
+        $infoContext = new ErrorContext(new Exception('Info message'), [], Severity::INFO);
+        $filteredHandler->report($infoContext);
+
+        $stmt = $this->pdo->query('SELECT COUNT(*) FROM test_errors_filter');
+        $this->assertNotFalse($stmt);
+        $this->assertSame(0, (int)$stmt->fetchColumn());
+
+        // 2. Erro com severidade WARNING (deve ser persistido)
+        $warningContext = new ErrorContext(new Exception('Warning message'), [], Severity::WARNING);
+        $filteredHandler->report($warningContext);
+
+        $stmt = $this->pdo->query('SELECT COUNT(*) FROM test_errors_filter');
+        $this->assertNotFalse($stmt);
+        $this->assertSame(1, (int)$stmt->fetchColumn());
+    }
 }

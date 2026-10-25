@@ -83,6 +83,7 @@ $tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', true))
         ->addHandler(new WebhookHandler('https://hooks.slack.com/services/...', format: 'slack'))
         ->addHandler(new GitHubIssueHandler('ghp_SEU_TOKEN_AQUI', 'usuario/repositorio'))
         ->addHandler(new EmailHandler('suporte@empresa.com', 'noreply@empresa.com', [Severity::CRITICAL]));
+        // Dica: Todos os handlers aceitam 'notifySeverities' (ex: [Severity::CRITICAL, Severity::WARNING])
 
 // 3. Define a Rota de Fuga (Failsafe em falhas críticas)
 $tracker->onCritical(function ($context) {

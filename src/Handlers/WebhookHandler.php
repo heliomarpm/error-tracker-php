@@ -15,14 +15,14 @@ class WebhookHandler implements HandlerInterface
 
   /**
    * @param string $webhookUrl URL do webhook (Slack, Discord, Teams ou customizado).
-   * @param array<Severity> $notifySeverities Níveis de severidade que disparam a notificação.
+   * @param array<Severity>|null $notifySeverities Níveis de severidade que disparam a notificação (null notifica todos).
    * @param string $format Formato do payload: 'slack', 'discord' ou 'generic'.
    * @param int $timeoutSeconds Timeout da requisição em segundos.
    * @param (callable(ErrorContext): array<string, mixed>)|null $payloadFormatter Callback customizado de formatação.
    */
   public function __construct(
       private readonly string $webhookUrl,
-      private readonly array $notifySeverities = [Severity::CRITICAL],
+      private readonly ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'generic',
       private readonly int $timeoutSeconds = 3,
       ?callable $payloadFormatter = null
@@ -32,7 +32,7 @@ class WebhookHandler implements HandlerInterface
 
   public function report(ErrorContext $context): void
   {
-    if (!in_array($context->severity, $this->notifySeverities, true)) {
+    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
       return;
     }
 

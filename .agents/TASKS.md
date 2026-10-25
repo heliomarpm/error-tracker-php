@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 14/14 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
+> **Status:** concluído | **Progresso:** 15/15 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
 
 ## Em progresso
 
@@ -13,9 +13,21 @@
 
 ## Backlog
 
-(todas as tarefas concluídas)
+(nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-015 · P1 · Padronizar filtro de severidade em todos os Handlers**
+  - Origem: manual | Dep.: nenhuma
+  - Ref: [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [HANDLERS.md](../docs/HANDLERS.md)
+  - DoD:
+    - [x] Adicionar parâmetro `$notifySeverities` tipado (`?array<Severity>`) nos construtores de `FilelogHandler`, `DatabaseHandler` e `GitHubIssueHandler`
+    - [x] Em `FilelogHandler` e `DatabaseHandler`, assumir `null` como padrão (processa todas as severidades), aplicando filtro caso uma lista seja informada
+    - [x] Em `GitHubIssueHandler`, definir filtro padrão (`[Severity::CRITICAL, Severity::WARNING]`) com suporte a customização pelo usuário
+    - [x] Harmonizar `EmailHandler` e `WebhookHandler` para suportarem `null` (notificar todas as severidades quando desejado)
+    - [x] Interromper a execução do método `report()` no início caso a severidade do evento não esteja na lista permitida
+    - [x] Criar/atualizar testes unitários em `tests/Unit/` validando o descarte e o registro conforme os níveis configurados (37 testes, 144 asserções aprovados)
+    - [x] Atualizar a documentação em `docs/HANDLERS.md` e `README.md` com exemplos práticos de filtragem
 
 - [x] **T-001 · P0 · Corrigir variáveis indefinidas e DDL no DatabaseHandler**
   - Origem: discovery | Dep.: nenhuma
