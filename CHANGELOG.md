@@ -5,6 +5,13 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+## [1.0.2](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.1...v1.0.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* **vercel:** 🐛 criar ponto de entrada em api/ para deploy serverless ([e8b7d51](https://github.com/heliomarpm/error-tracker-php/commit/e8b7d51c093bd39bc35f746e7c09dbb2f6b44810))
+
 ## [1.0.1](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.0...v1.0.1) (2026-10-25)
 
 
