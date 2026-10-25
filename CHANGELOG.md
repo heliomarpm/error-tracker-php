@@ -5,6 +5,13 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+## [1.0.1](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.0...v1.0.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **ci:** 🐛 flexibilizar versao do pint para compatibilidade com php 8.2 ([3fe3804](https://github.com/heliomarpm/error-tracker-php/commit/3fe38049a422d56285ada2bdde9a55560e9fa75d))
+
 # 1.0.0 (2026-10-25)
 
 
