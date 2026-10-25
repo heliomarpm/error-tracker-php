@@ -22,6 +22,7 @@ class ErrorContext
     public readonly array $requestData;
     public readonly string $hash;
 
+    public readonly bool $isException;
     public readonly string $exceptionClass;
     public readonly ?string $previousClass;
     public readonly ?string $previousMessage;
@@ -37,8 +38,10 @@ class ErrorContext
         array $sanitizedRequest,
         Severity $severity = Severity::CRITICAL,
         ?string $userName = null,
-        bool $includeCallInTrace = true
+        bool $includeCallInTrace = true,
+        bool $isException = true
     ) {
+        $this->isException = $isException;
         $this->severity = $severity;
         $this->message = $e->getMessage();
         $this->code = $e->getCode();
@@ -46,16 +49,16 @@ class ErrorContext
         $this->relativeFile = StackTraceFormatter::normalizePath($this->file);
         $this->line = $e->getLine();
 
-        $this->rawTrace = $e->getTraceAsString();
-        $this->compactTrace = StackTraceFormatter::format($e, includeCall: false);
-        $this->detailedTrace = StackTraceFormatter::format($e, includeCall: true);
-        $this->trace = $includeCallInTrace ? $this->detailedTrace : $this->compactTrace;
+        $this->rawTrace = $isException ? $e->getTraceAsString() : '';
+        $this->compactTrace = $isException ? StackTraceFormatter::format($e, includeCall: false) : '';
+        $this->detailedTrace = $isException ? StackTraceFormatter::format($e, includeCall: true) : '';
+        $this->trace = $isException ? ($includeCallInTrace ? $this->detailedTrace : $this->compactTrace) : '';
 
         $this->requestData = $sanitizedRequest;
 
-        $this->exceptionClass = get_class($e);
+        $this->exceptionClass = $isException ? get_class($e) : strtoupper($severity->name);
 
-        $prev = $e->getPrevious();
+        $prev = $isException ? $e->getPrevious() : null;
         $this->previousClass = $prev !== null ? get_class($prev) : null;
         $this->previousMessage = $prev !== null ? $prev->getMessage() : null;
 
@@ -76,11 +79,15 @@ class ErrorContext
         // Resolução do nome do usuário autenticado ou no contexto
         $resolvedUser = $userName;
         if ($resolvedUser === null && isset($sanitizedRequest['context']) && is_array($sanitizedRequest['context'])) {
-            $ctxUser = $sanitizedRequest['context']['user'] ?? $sanitizedRequest['context']['user_name'] ?? $sanitizedRequest['context']['usuario'] ?? null;
+            $ctxUser = $sanitizedRequest['context']['user']
+                ?? $sanitizedRequest['context']['user_name']
+                ?? $sanitizedRequest['context']['username']
+                ?? $sanitizedRequest['context']['usuario']
+                ?? null;
             if (is_string($ctxUser)) {
                 $resolvedUser = $ctxUser;
             } elseif (is_array($ctxUser)) {
-                $resolvedUser = (string)($ctxUser['name'] ?? ($ctxUser['email'] ?? ($ctxUser['id'] ?? '')));
+                $resolvedUser = (string)($ctxUser['name'] ?? ($ctxUser['email'] ?? ($ctxUser['username'] ?? ($ctxUser['id'] ?? ''))));
             }
         }
 

@@ -120,4 +120,39 @@ final class TemplateRendererTest extends TestCase
         $this->assertStringContainsString('RuntimeException:</strong> Conexão recusada', $renderedHtml);
         $this->assertStringContainsString('Carlos Dev', $renderedHtml);
     }
+
+    public function testRendersInformationalLogWithoutExceptionOrStackTrace(): void
+    {
+        $exception = new ErrorException('Usuário tentou acessar recurso sem permissão', 0, E_USER_NOTICE, 'src/Controller.php', 45);
+        $context = new ErrorContext(
+            $exception,
+            ['context' => ['username' => 'roberto_dev']],
+            Severity::INFO,
+            isException: false
+        );
+
+        $filelogTplPath = __DIR__ . '/../../src/Templates/filelog.tpl';
+        $emailTextTplPath = __DIR__ . '/../../src/Templates/email_text.tpl';
+        $emailHtmlTplPath = __DIR__ . '/../../src/Templates/email_html.tpl';
+
+        $renderedLog = $this->renderer->render($filelogTplPath, $context);
+        $renderedText = $this->renderer->render($emailTextTplPath, $context);
+        $renderedHtml = $this->renderer->render($emailHtmlTplPath, $context);
+
+        // Validação no Filelog: sem "ErrorException:" e sem "Stack Trace:"
+        $this->assertStringContainsString('[INFO] Usuário tentou acessar recurso sem permissão', $renderedLog);
+        $this->assertStringNotContainsString('ErrorException:', $renderedLog);
+        $this->assertStringNotContainsString('Stack Trace:', $renderedLog);
+        $this->assertStringContainsString('Usuário:     roberto_dev', $renderedLog);
+
+        // Validação no Email Texto
+        $this->assertStringContainsString('ℹ️ [INFO] REGISTRO DE EVENTO', $renderedText);
+        $this->assertStringNotContainsString('Tipo:         ErrorException', $renderedText);
+        $this->assertStringNotContainsString('RASTREAMENTO DA PILHA', $renderedText);
+        $this->assertStringContainsString('Usuário:      roberto_dev', $renderedText);
+
+        // Validação no Email HTML
+        $this->assertStringContainsString('ℹ️ INFO', $renderedHtml);
+        $this->assertStringNotContainsString('Rastreamento da Pilha', $renderedHtml);
+    }
 }

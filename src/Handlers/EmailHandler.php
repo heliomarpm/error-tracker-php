@@ -30,7 +30,7 @@ class EmailHandler implements HandlerInterface
       private readonly ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'html',
       ?string $templateOrPath = null,
-      private readonly string $subjectTemplate = '🚨 [{{severity}}] Incidente Detectado: {{message}}',
+      private readonly string $subjectTemplate = '<!-- IF_EXCEPTION -->🚨 [{{severity}}] Incidente Detectado: {{message}}<!-- /IF_EXCEPTION --><!-- IF_MESSAGE_ONLY -->ℹ️ [{{severity}}] Evento: {{message}}<!-- /IF_MESSAGE_ONLY -->',
       ?callable $formatter = null
   ) {
     $this->formatter = $formatter;

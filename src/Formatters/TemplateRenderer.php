@@ -30,6 +30,9 @@ class TemplateRenderer
             'timestamp' => date('Y-m-d H:i:s'),
             'severity' => strtoupper($context->severity->name),
             'severity_value' => strtolower($context->severity->value),
+            'is_exception' => $context->isException ? '1' : '',
+            'is_message' => !$context->isException ? '1' : '',
+            'has_trace' => ($context->isException && !empty($context->trace)) ? '1' : '',
             'error_title' => $context->exceptionClass,
             'error_class' => $context->exceptionClass,
             'class' => $context->exceptionClass,
@@ -106,6 +109,9 @@ class TemplateRenderer
                         'ORIGIN' => (!empty($tags['error_file']) || !empty($tags['file'])) && (!empty($tags['error_line']) || !empty($tags['line'])),
                         'PREVIOUS' => !empty($tags['previous_class']) || !empty($tags['previous_message']),
                         'USER', 'USUARIO', 'USUARIO_NOME' => $context->userName !== null && $context->userName !== '',
+                        'EXCEPTION', 'IS_EXCEPTION' => $context->isException,
+                        'NOT_EXCEPTION', 'MESSAGE_ONLY', 'IS_MESSAGE' => !$context->isException,
+                        'TRACE', 'STACK_TRACE', 'HAS_TRACE' => $context->isException && !empty($tags['trace']),
                         default => !empty($tags[strtolower($cond)] ?? '') || !empty($tags[$cond] ?? ''),
                     };
 

@@ -59,10 +59,15 @@ class WebhookHandler implements HandlerInterface
 
     return match (strtolower($this->format)) {
       'slack' => [
-          'text' => "🚨 *[{$context->severity->name}] Incidente Detectado*",
+          'text' => ($context->isException ? '🚨' : 'ℹ️') . " *[{$context->severity->name}] " . ($context->isException ? 'Incidente Detectado' : 'Registro de Evento') . '*',
           'attachments' => [
               [
-                  'color' => $context->severity === Severity::CRITICAL ? '#d9534f' : '#f0ad4e',
+                  'color' => match ($context->severity) {
+                      Severity::CRITICAL => '#d9534f',
+                      Severity::WARNING => '#f0ad4e',
+                      Severity::INFO => '#3498db',
+                      default => '#777777',
+                  },
                   'title' => $context->message,
                   'fields' => [
                       ['title' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'short' => true],
@@ -74,12 +79,17 @@ class WebhookHandler implements HandlerInterface
           ],
       ],
       'discord' => [
-          'content' => "🚨 **[{$context->severity->name}] Incidente Detectado**",
+          'content' => ($context->isException ? '🚨' : 'ℹ️') . " **[{$context->severity->name}] " . ($context->isException ? 'Incidente Detectado' : 'Registro de Evento') . '**',
           'embeds' => [
               [
                   'title' => substr($context->message, 0, 250),
-                  'description' => "```php\n" . substr($context->trace, 0, 1000) . "\n```",
-                  'color' => $context->severity === Severity::CRITICAL ? 14242639 : 15773006,
+                  'description' => !empty($context->trace) ? "```php\n" . substr($context->trace, 0, 1000) . "\n```" : null,
+                  'color' => match ($context->severity) {
+                      Severity::CRITICAL => 14242639,
+                      Severity::WARNING => 15773006,
+                      Severity::INFO => 3447003,
+                      default => 7829367,
+                  },
                   'fields' => [
                       ['name' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'inline' => true],
                       ['name' => 'Hash ID', 'value' => "`{$context->hash}`", 'inline' => true],

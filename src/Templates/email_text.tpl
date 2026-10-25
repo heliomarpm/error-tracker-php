@@ -1,8 +1,15 @@
 =================================ERROR TRACKER=================================
+<!-- IF_EXCEPTION -->
 🚨 [{{severity}}] ALERTA DE INCIDENTE
+<!-- /IF_EXCEPTION -->
+<!-- IF_MESSAGE_ONLY -->
+ℹ️ [{{severity}}] REGISTRO DE EVENTO
+<!-- /IF_MESSAGE_ONLY -->
 ===============================================================================
 
+<!-- IF_EXCEPTION -->
 Tipo:         {{error_title}}
+<!-- /IF_EXCEPTION -->
 Mensagem:     {{error_message}}
 <!-- IF_ORIGIN -->
 Origem:       {{error_file}}:{{error_line}}
@@ -15,11 +22,13 @@ Usuário:      {{usuario_nome}}
 Data/Hora:    {{timestamp}}
 PHP / Serv.:  PHP {{php_version}} em {{server_name}}
 Memória:      {{memory_usage}}
+<!-- IF_TRACE -->
 
 -------------------------------------------------------------------------------
 🔍 RASTREAMENTO DA PILHA (STACK TRACE)
 -------------------------------------------------------------------------------
 {{stack_trace}}
+<!-- /IF_TRACE -->
 
 --------------------------------------------------------------------------------
 📦 PAYLOAD E AMBIENTE (SANITIZADO)

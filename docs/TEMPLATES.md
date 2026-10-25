@@ -32,14 +32,23 @@ Qualquer template ou formato que utilize `TemplateRenderer` suporta as seguintes
 | `{{relative_file}}` / `{{error_file}}` | Caminho do arquivo relativo à raiz do projeto | `src/Services/OrderService.php` |
 | `{{payload}}` | Dados de request sanitizados em JSON | `{"post":{"user":"admin"...}}` |
 | `{{hash}}` | Assinatura única (MD5) do erro | `eba8872610b3e3188d4da1c5c714cdcf` |
+| `{{is_exception}}` | Retorna `1` se o evento foi originado por uma exceção lançada, ou vazio | `1` |
+| `{{is_message}}` | Retorna `1` se foi disparado por chamada de log manual (`info()`, `notice()`, etc.) | `1` |
+| `{{has_trace}}` | Retorna `1` se houver rastreamento de pilha (stack trace) real disponível | `1` |
 
 ---
 
 ## 2. Blocos Condicionais (`<!-- IF_COND -->...<!-- /IF_COND -->`)
 
-Você pode ocultar linhas e seções inteiras de forma inteligente quando um dado não estiver disponível, evitando linhas vazias no e-mail:
+Você pode ocultar linhas e seções inteiras de forma inteligente quando um dado não estiver disponível ou de acordo com a natureza do evento (exceção vs log simples), evitando ruídos e linhas vazias:
 
 ```text
+<!-- IF_EXCEPTION -->
+[{{timestamp}}] [{{severity}}] {{error_title}}: {{message}}
+<!-- /IF_EXCEPTION -->
+<!-- IF_MESSAGE_ONLY -->
+[{{timestamp}}] [{{severity}}] {{message}}
+<!-- /IF_MESSAGE_ONLY -->
 <!-- IF_ORIGIN -->
 Origem:       {{error_file}}:{{error_line}}
 <!-- /IF_ORIGIN -->
@@ -49,11 +58,18 @@ Causa Raiz:   {{previous_class}}: {{previous_message}}
 <!-- IF_USER -->
 Usuário:      {{usuario_nome}}
 <!-- /IF_USER -->
+<!-- IF_TRACE -->
+Stack Trace:
+{{trace}}
+<!-- /IF_TRACE -->
 ```
 
-* **`<!-- IF_ORIGIN -->`**: Exibido apenas se o arquivo e linha de origem estiverem disponíveis.
+* **`<!-- IF_EXCEPTION -->`**: Exibido apenas se o evento decorre de uma exceção real capturada (`throw new Exception()`, erro fatal, unhandled).
+* **`<!-- IF_MESSAGE_ONLY -->`**: Exibido quando a chamada decorre de registro manual no logger (ex: `$tracker->info(...)`), omitindo títulos genéricos como `ErrorException`.
+* **`<!-- IF_TRACE -->`**: Exibido apenas se for uma exceção com stack trace disponível, evitando dezenas de linhas de rastreamento desnecessárias em logs do dia a dia.
+* **`<!-- IF_ORIGIN -->`**: Exibido apenas se o arquivo e linha de origem estiverem disponíveis (ignora frames internos do logger e aponta diretamente para o código da sua aplicação).
 * **`<!-- IF_PREVIOUS -->`**: Exibido apenas se houver uma exceção encadeada (`$e->getPrevious()`). Se o erro não tiver causa anterior, todo o bloco é removido sem deixar linhas em branco.
-* **`<!-- IF_USER -->`**: Exibido apenas quando houver usuário autenticado no contexto ou na sessão.
+* **`<!-- IF_USER -->`**: Exibido apenas quando houver usuário autenticado no contexto (`user`, `user_name`, `username`) ou na sessão.
 * Qualquer outra tag (ex.: `<!-- IF_PAYLOAD -->`) também é suportada.
 
 ---

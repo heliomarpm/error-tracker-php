@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 15/15 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
+> **Status:** concluído | **Progresso:** 16/16 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
 
 ## Em progresso
 
@@ -16,6 +16,19 @@
 (nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-016 · P1 · Adaptar templates e rastreamento para logs informativos PSR-3**
+  - Origem: manual | Dep.: T-007, T-008
+  - Ref: [ErrorTracker.php](../src/ErrorTracker.php), [ErrorContext.php](../src/ErrorContext.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [Templates/](../src/Templates/)
+  - DoD:
+    - [x] Localizar linha e arquivo real de chamada em `captureMessage()` pulando frames internos de `ErrorTracker.php` e `LoggerTrait.php`
+    - [x] Adicionar propriedade `isException` em `ErrorContext`, identificando logs manuais e omitindo classes genéricas de exceção (`ErrorException`)
+    - [x] Adicionar suporte a `username` na resolução de usuário do contexto
+    - [x] Suportar tags e blocos condicionais `<!-- IF_EXCEPTION -->`, `<!-- IF_MESSAGE_ONLY -->` e `<!-- IF_TRACE -->` em `TemplateRenderer`
+    - [x] Adaptar templates padrões (`filelog.tpl`, `email_text.tpl`, `email_html.tpl`) para não exibirem stack trace e cabeçalhos de incidente em logs informativos
+    - [x] Ajustar formatação de mensagens em `WebhookHandler` (Slack / Discord) para diferenciar eventos e incidentes
+    - [x] Criar testes unitários validando log informativo vs exceção (39 testes, 163 asserções aprovados)
+    - [x] Documentar novas tags e blocos condicionais em `docs/TEMPLATES.md`
 
 - [x] **T-015 · P1 · Padronizar filtro de severidade em todos os Handlers**
   - Origem: manual | Dep.: nenhuma

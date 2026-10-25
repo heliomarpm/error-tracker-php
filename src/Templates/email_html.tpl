@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🚨 [{{severity}}] Alerta de Incidente - ErrorTracker</title>
+  <title><!-- IF_EXCEPTION -->🚨 [{{severity}}] Alerta de Incidente - ErrorTracker<!-- /IF_EXCEPTION --><!-- IF_MESSAGE_ONLY -->ℹ️ [{{severity}}] Registro de Evento - ErrorTracker<!-- /IF_MESSAGE_ONLY --></title>
 </head>
 <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0d1117; color: #e6edf3;">
   <div style="max-width: 720px; margin: 0 auto; background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);">
@@ -14,7 +14,7 @@
         <tr>
           <td style="vertical-align: middle;">
             <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #f85149; background: rgba(248, 81, 73, 0.15); border: 1px solid rgba(248, 81, 73, 0.4); padding: 4px 12px; border-radius: 20px;">
-              🚨 {{severity}}
+              <!-- IF_EXCEPTION -->🚨 {{severity}}<!-- /IF_EXCEPTION --><!-- IF_MESSAGE_ONLY -->ℹ️ {{severity}}<!-- /IF_MESSAGE_ONLY -->
             </span>
           </td>
           <td style="text-align: right; vertical-align: middle; font-size: 12px; color: #8b949e; font-family: 'SFMono-Regular', Consolas, monospace;">
@@ -24,9 +24,11 @@
       </table>
 
       <div style="margin-top: 16px;">
+<!-- IF_EXCEPTION -->
         <span style="display: inline-block; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; font-weight: 600; color: #a5b4fc; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); padding: 3px 10px; border-radius: 6px; margin-bottom: 8px;">
           {{error_title}}
         </span>
+<!-- /IF_EXCEPTION -->
         <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 600; color: #ffffff; line-height: 1.4;">
           {{error_message}}
         </h1>
@@ -82,6 +84,7 @@
         </tr>
       </table>
 
+<!-- IF_TRACE -->
       <!-- Stack Trace -->
       <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #58a6ff;">
         🔍 Rastreamento da Pilha (Stack Trace)
@@ -89,6 +92,7 @@
       <div style="background-color: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 24px; overflow-x: auto;">
         <pre style="margin: 0; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12px; line-height: 1.6; color: #c9d1d9; white-space: pre-wrap; word-break: break-all;">{{stack_trace}}</pre>
       </div>
+<!-- /IF_TRACE -->
 
       <!-- Payload Sanitizado -->
       <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #3fb950;">

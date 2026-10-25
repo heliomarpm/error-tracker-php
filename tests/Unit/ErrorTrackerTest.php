@@ -108,4 +108,37 @@ final class ErrorTrackerTest extends TestCase
         $this->assertContains(Severity::WARNING, $severities);
         $this->assertContains(Severity::NOTICE, $severities);
     }
+
+    public function testInfoLogResolvesCallerOriginAndIsNotMarkedAsException(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+
+        /** @var ErrorContext|null $reportedContext */
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+
+        // Chamada direta do método info com contexto de usuário
+        $line = __LINE__ + 1;
+        $tracker->info('Tentativa de login com credencial inválida', ['username' => 'ana_tech']);
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('Tentativa de login com credencial inválida', $reportedContext->message);
+        $this->assertSame(Severity::INFO, $reportedContext->severity);
+        $this->assertFalse($reportedContext->isException);
+        $this->assertSame('INFO', $reportedContext->exceptionClass);
+        $this->assertSame('ana_tech', $reportedContext->userName);
+        $this->assertSame(__FILE__, $reportedContext->file);
+        $this->assertSame($line, $reportedContext->line);
+        $this->assertSame('', $reportedContext->trace);
+    }
 }

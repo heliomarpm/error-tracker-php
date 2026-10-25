@@ -141,17 +141,30 @@ class ErrorTracker implements LoggerInterface
    */
   private function captureMessage(string $message, Severity $severity, array $extraContext = []): void
   {
-    // Usa o backtrace para descobrir exatamente qual arquivo e linha chamou o método
-    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-    $caller = $trace[1] ?? ($trace[0] ?? []);
-    $file = (string)($caller['file'] ?? 'UNKNOWN_FILE');
-    $line = (int)($caller['line'] ?? 0);
+    // Usa o backtrace para descobrir exatamente qual arquivo e linha da aplicação chamou o método,
+    // ignorando frames internos do ErrorTracker e do LoggerTrait do PSR-3.
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    $file = 'UNKNOWN_FILE';
+    $line = 0;
 
-    // Criamos uma exceção "falsa" apenas para gerar o stack trace completo e estruturado
+    foreach ($trace as $frame) {
+      $frameFile = $frame['file'] ?? '';
+      $normalized = str_replace('\\', '/', (string)$frameFile);
+      if ($frameFile !== ''
+          && !str_ends_with($normalized, 'src/ErrorTracker.php')
+          && !str_contains($normalized, 'psr/log')
+      ) {
+        $file = (string)$frameFile;
+        $line = (int)($frame['line'] ?? 0);
+        break;
+      }
+    }
+
+    // Criamos uma exceção "sintética" para transportar mensagem, arquivo e linha
     $exception = new ErrorException($message, 0, E_USER_NOTICE, $file, $line);
 
-    // Dispara para o fluxo principal de Handlers
-    $this->processError($exception, $severity, $extraContext);
+    // Dispara para o fluxo principal de Handlers marcando como evento manual (isException: false)
+    $this->processError($exception, $severity, $extraContext, isException: false);
   }
 
   /**
@@ -159,8 +172,12 @@ class ErrorTracker implements LoggerInterface
    *
    * @param array<string, mixed> $extraContext
    */
-  private function processError(Throwable $exception, Severity $severity, array $extraContext = []): void
-  {
+  private function processError(
+      Throwable $exception,
+      Severity $severity,
+      array $extraContext = [],
+      bool $isException = true
+  ): void {
     // 1. Coleta e sanitiza os dados (mascarando senhas, CPFs, cartões)
     $rawRequest = [
         'post' => $_POST,
@@ -175,7 +192,12 @@ class ErrorTracker implements LoggerInterface
     $requestData = $this->sanitizer->sanitize($rawRequest);
 
     // 2. Constrói o DTO que agrupa todas as informações (incluindo o Hash MD5)
-    $context = new ErrorContext($exception, $requestData, $severity);
+    $context = new ErrorContext(
+        $exception,
+        $requestData,
+        $severity,
+        isException: $isException
+    );
 
     // 3. Verificação de Deduplicação via Cache
     if ($this->cache !== null) {
