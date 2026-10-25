@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 17/17 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
+> **Status:** concluído | **Progresso:** 18/18 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
 
 ## Em progresso
 
@@ -16,6 +16,18 @@
 (nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-018 · P1 · Redesenhar interface da demo em layout workbench com navegação por abas**
+  - Origem: manual | Dep.: nenhuma
+  - Ref: [demo/index.php](../demo/index.php), [demo/api.php](../demo/api.php)
+  - DoD:
+    - [x] Reestruturar layout da demo para 2 colunas: Controles (esquerda) e Workspace por Abas (direita)
+    - [x] Ajustar tom de voz para público técnico/desenvolvedor (direto, sem termos publicitários)
+    - [x] Adicionar terminal de 1-clique no Hero com comando `composer require heliomarpm/error-tracker`
+    - [x] Implementar abas principais: Notificações (Handlers), Playground LGPD, Histórico (com badge) e Como Implementar
+    - [x] Criar aba "Como Implementar" com snippets de código copiáveis para todos os casos de uso
+    - [x] Manter e integrar todas as rotas e funções de API existentes (simulação, anti-flood, sanitização, prévias)
+    - [x] Validar visualmente via subagente de browser no localhost:8000
 
 - [x] **T-017 · P2 · Documentar exemplos e configurações do GitHubIssueHandler no README.md**
   - Origem: manual | Dep.: nenhuma
