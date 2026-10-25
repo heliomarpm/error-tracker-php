@@ -39,11 +39,15 @@ class TemplateRenderer
 
             // Localização e Origem
             'file' => $context->file,
-            'error_file' => $context->file,
+            'relative_file' => $context->relativeFile,
+            'error_file' => $context->relativeFile,
             'line' => (string)$context->line,
             'error_line' => (string)$context->line,
             'trace' => $context->trace,
             'stack_trace' => $context->trace,
+            'compact_trace' => $context->compactTrace,
+            'detailed_trace' => $context->detailedTrace,
+            'raw_trace' => $context->rawTrace,
             'hash' => $context->hash,
 
             // Causa Raiz

@@ -26,7 +26,10 @@ Qualquer template ou formato que utilize `TemplateRenderer` suporta as seguintes
 | `{{php_version}}` | Versão do runtime PHP | `8.4.11` |
 | `{{memory_usage}}` | Pico de memória alocada no script | `18.45 MB` |
 | `{{usuario_nome}}` | Nome do usuário autenticado no contexto | `Carlos Dev` ou `Anônimo` |
-| `{{trace}}` / `{{stack_trace}}` | Stack trace formatado | `#0 /app/index.php...` |
+| `{{trace}}` / `{{stack_trace}}` | Stack trace formatado legível com paths relativos e chamadas | `src/Order.php(42)\n    at src/Controller.php(15): Checkout->process()` |
+| `{{compact_trace}}` | Stack trace compacto apenas com arquivo e linha | `src/Order.php(42)\n    at src/Controller.php(15)` |
+| `{{raw_trace}}` | Stack trace nativo do PHP (getTraceAsString) | `#0 /var/www/...` |
+| `{{relative_file}}` / `{{error_file}}` | Caminho do arquivo relativo à raiz do projeto | `src/Services/OrderService.php` |
 | `{{payload}}` | Dados de request sanitizados em JSON | `{"post":{"user":"admin"...}}` |
 | `{{hash}}` | Assinatura única (MD5) do erro | `eba8872610b3e3188d4da1c5c714cdcf` |
 

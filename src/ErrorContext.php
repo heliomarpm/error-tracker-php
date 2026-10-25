@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker;
 
+use HeliomarPM\ErrorTracker\Formatters\StackTraceFormatter;
 use Throwable;
 
 class ErrorContext
@@ -12,8 +13,12 @@ class ErrorContext
     public readonly string $message;
     public readonly int|string $code;
     public readonly string $file;
+    public readonly string $relativeFile;
     public readonly int $line;
     public readonly string $trace;
+    public readonly string $rawTrace;
+    public readonly string $compactTrace;
+    public readonly string $detailedTrace;
     public readonly array $requestData;
     public readonly string $hash;
 
@@ -31,14 +36,21 @@ class ErrorContext
         Throwable $e,
         array $sanitizedRequest,
         Severity $severity = Severity::CRITICAL,
-        ?string $userName = null
+        ?string $userName = null,
+        bool $includeCallInTrace = true
     ) {
         $this->severity = $severity;
         $this->message = $e->getMessage();
         $this->code = $e->getCode();
         $this->file = $e->getFile();
+        $this->relativeFile = StackTraceFormatter::normalizePath($this->file);
         $this->line = $e->getLine();
-        $this->trace = $e->getTraceAsString();
+
+        $this->rawTrace = $e->getTraceAsString();
+        $this->compactTrace = StackTraceFormatter::format($e, includeCall: false);
+        $this->detailedTrace = StackTraceFormatter::format($e, includeCall: true);
+        $this->trace = $includeCallInTrace ? $this->detailedTrace : $this->compactTrace;
+
         $this->requestData = $sanitizedRequest;
 
         $this->exceptionClass = get_class($e);
