@@ -28,13 +28,13 @@ Antes de abrir uma dúvida ou suporte, consulte nossa documentação:
 
 ## 🐛 Relato de Bugs
 
-Se você encontrou um erro no código, abra uma issue no nosso [Rastreador de Issues](https://github.com/heliomarpm/error-tracker/issues).
+Se você encontrou um erro no código, abra uma issue no nosso [Rastreador de Issues](https://github.com/heliomarpm/error-tracker-php/issues).
 Certifique-se de preencher o modelo de **Bug Report** fornecendo todas as informações necessárias para reprodução.
 
 ## 💡 Sugestões de Recursos (Feature Requests)
 
 Tem uma ideia para melhorar o **ErrorTracker**? Adoraríamos conhecer!
-Envie sua proposta pelo [Rastreador de Issues](https://github.com/heliomarpm/error-tracker/issues) utilizando o modelo de **Feature Request**.
+Envie sua proposta pelo [Rastreador de Issues](https://github.com/heliomarpm/error-tracker-php/issues) utilizando o modelo de **Feature Request**.
 
 ## 💬 Dúvidas e Comunidade
 

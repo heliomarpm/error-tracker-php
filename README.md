@@ -3,7 +3,7 @@
   <img src="./logo.png" alt="ErrorTracker" width="256" /><br>
 
   <a href="https://navto.me/heliomarpm" target="_blank"><img src="https://navto.me/assets/navigatetome-brand.png" width="32"/></a>
-  [![CI Status](https://github.com/heliomarpm/error-tracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/heliomarpm/error-tracker/actions)
+  [![CI Status](https://github.com/heliomarpm/error-tracker-php/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/heliomarpm/error-tracker-php/actions)
   [![CodeFactor][url-codefactor-badge]][url-codefactor]
   [![Packagist Version][url-packagist-badge]][url-packagist]
   [![Packagist Downloads][url-packagist-downloads-badge]][url-packagist]
@@ -300,16 +300,16 @@ Existem várias formas de contribuir:
 - 📢 Compartilhar o projeto
 
 Para propor uma melhoria ou contribuição, veja o [Guia de Contribuição](docs/CONTRIBUTING.md).\
-Se precisar de ajuda ou encontrou um problema, consulte o [Suporte](docs/SUPPORT.md) ou abra uma [Issue](https://github.com/heliomarpm/error-tracker/issues). Leia também o [Código de Conduta](docs/CODE_OF_CONDUCT.md).
+Se precisar de ajuda ou encontrou um problema, consulte o [Suporte](docs/SUPPORT.md) ou abra uma [Issue](https://github.com/heliomarpm/error-tracker-php/issues). Leia também o [Código de Conduta](docs/CODE_OF_CONDUCT.md).
 
 Obrigado a todos que já contribuíram:
 
-[![Contribuidores](https://contrib.rocks/image?repo=heliomarpm/error-tracker)](https://github.com/heliomarpm/error-tracker/graphs/contributors)
+[![Contribuidores](https://contrib.rocks/image?repo=heliomarpm/error-tracker)](https://github.com/heliomarpm/error-tracker-php/graphs/contributors)
 
 ###### Made with [contrib.rocks](https://contrib.rocks/image?repo=heliomarpm/error-tracker)
 
 <!-- 
-[![Contribuidores](https://contrib.nn.ci/api?repo=heliomarpm/error-tracker&no_bot=true)](https://github.com/heliomarpm/error-tracker/graphs/contributors)
+[![Contribuidores](https://contrib.nn.ci/api?repo=heliomarpm/error-tracker&no_bot=true)](https://github.com/heliomarpm/error-tracker-php/graphs/contributors)
 
 ###### Criado com [contrib.nn](https://contrib.nn.ci/?repo=heliomarpm/error-tracker&no_bot=true) 
 -->
@@ -325,25 +325,28 @@ Se você gosta do projeto, considere fazer uma doação ao desenvolvedor via Git
 
 ## 📝 Licença
 
-Distribuído sob a licença [MIT](https://github.com/heliomarpm/error-tracker/blob/main/LICENSE) © [Heliomar P. Marques](https://github.com/heliomarpm).\
+Distribuído sob a licença [MIT](https://github.com/heliomarpm/error-tracker-php/blob/main/LICENSE) © [Heliomar P. Marques](https://github.com/heliomarpm).\
 Sinta-se livre para utilizar, customizar e estender estas bibliotecas nos seus ambientes de desenvolvimento. [🔝](#top)
 
 ---
 <!-- Sponsor badges -->
+
+
+<!-- Packagist badges -->
+
+
+<!-- other badges -->
+
+[url-codefactor]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker
+[url-codefactor-badge]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker/badge
 [url-github-sponsors]: https://github.com/sponsors/heliomarpm
 [url-github-sponsors-badge]: https://img.shields.io/badge/GitHub%20-Sponsor-1C1E26?style=for-the-badge&labelColor=1C1E26&color=db61a2
 [url-kofi]: https://ko-fi.com/heliomarpm
 [url-kofi-badge]: https://img.shields.io/badge/kofi-1C1E26?style=for-the-badge&labelColor=1C1E26&color=ff5f5f
 [url-liberapay]: https://liberapay.com/heliomarpm
 [url-liberapay-badge]: https://img.shields.io/badge/liberapay-1C1E26?style=for-the-badge&labelColor=1C1E26&color=f6c915
-[url-paypal]: https://bit.ly/paypal-sponsor-heliomarpm
-[url-paypal-badge]: https://img.shields.io/badge/donate%20on-paypal-1C1E26?style=for-the-badge&labelColor=1C1E26&color=0475fe
-
-<!-- Packagist badges -->
 [url-packagist]: https://packagist.org/packages/heliomarpm/error-tracker
 [url-packagist-badge]: https://img.shields.io/packagist/v/heliomarpm/error-tracker
 [url-packagist-downloads-badge]: https://img.shields.io/packagist/dt/heliomarpm/error-tracker
-
-<!-- other badges -->
-[url-codefactor]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker
-[url-codefactor-badge]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker/badge
+[url-paypal]: https://bit.ly/paypal-sponsor-heliomarpm
+[url-paypal-badge]: https://img.shields.io/badge/donate%20on-paypal-1C1E26?style=for-the-badge&labelColor=1C1E26&color=0475fe

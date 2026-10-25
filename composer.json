@@ -10,8 +10,8 @@
     }
   ],
   "support": {
-    "issues": "https://github.com/heliomarpm/error-tracker/issues",
-    "source": "https://github.com/heliomarpm/error-tracker"
+    "issues": "https://github.com/heliomarpm/error-tracker-php/issues",
+    "source": "https://github.com/heliomarpm/error-tracker-php"
   },
   "keywords": [
     "error",
