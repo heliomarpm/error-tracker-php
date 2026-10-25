@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "functions": {
+    "demo/*.php": {
+      "runtime": "vercel-php@0.7.3"
+    }
+  },
+  "routes": [
+    { "src": "/api", "dest": "/demo/api.php" },
+    { "src": "/api.php", "dest": "/demo/api.php" },
+    { "src": "/500", "dest": "/demo/500.php" },
+    { "src": "/500.php", "dest": "/demo/500.php" },
+    { "src": "/(.*)", "dest": "/demo/$1" }
+  ]
+}
