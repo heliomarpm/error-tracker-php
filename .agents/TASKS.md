@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 16/16 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
+> **Status:** concluído | **Progresso:** 17/17 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-25
 
 ## Em progresso
 
@@ -16,6 +16,16 @@
 (nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-017 · P2 · Documentar exemplos e configurações do GitHubIssueHandler no README.md**
+  - Origem: manual | Dep.: nenhuma
+  - Ref: [README.md](../README.md), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [HANDLERS.md](../docs/HANDLERS.md)
+  - DoD:
+    - [x] Adicionar seção dedicada de configuração e boas práticas do GitHubIssueHandler no README.md
+    - [x] Detalhar geração e permissões de token do GitHub (PAT Fine-grained vs Classic `repo`)
+    - [x] Apresentar exemplos práticos: setup básico, filtragem de severidades, deduplicação com reincidência e formatador customizado de corpo via closure
+    - [x] Exemplificar logs manuais PSR-3 com contexto enriquecido (username, IP, metadata)
+    - [x] Validar links e formatação Markdown no README.md
 
 - [x] **T-016 · P1 · Adaptar templates e rastreamento para logs informativos PSR-3**
   - Origem: manual | Dep.: T-007, T-008

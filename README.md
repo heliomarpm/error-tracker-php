@@ -80,8 +80,8 @@ $pdo = new PDO("mysql:host=localhost;dbname=meu_banco", "root", "senha");
 
 $tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', true))
         ->addHandler(new FilelogHandler(__DIR__ . '/storage/logs'))
-        ->addHandler(new WebhookHandler('https://hooks.slack.com/services/...', format: 'slack'))
-        ->addHandler(new GitHubIssueHandler('ghp_SEU_TOKEN_AQUI', 'usuario/repositorio'))
+        ->addHandler(new WebhookHandler($_ENV['SLACK_WEBHOOK_URL'] ?? 'https://hooks.slack.com/...', format: 'slack'))
+        ->addHandler(new GitHubIssueHandler($_ENV['GITHUB_TOKEN'] ?? 'github_pat_...', 'usuario/repositorio'))
         ->addHandler(new EmailHandler('suporte@empresa.com', 'noreply@empresa.com', [Severity::CRITICAL]));
         // Dica: Todos os handlers aceitam 'notifySeverities' (ex: [Severity::CRITICAL, Severity::WARNING])
 
@@ -94,21 +94,165 @@ $tracker->onCritical(function ($context) {
 $tracker->register();
 ```
 
+---
+
+## 🐙 Abertura Automática de Issues no GitHub (`GitHubIssueHandler`)
+
+O **GitHubIssueHandler** conecta a sua aplicação diretamente ao fluxo de trabalho do time de engenharia. Quando um erro acontece, uma Issue estruturada é aberta automaticamente no GitHub contendo:
+* **Título Padronizado:** com identificação da aplicação/ambiente e nível de severidade (ex: `[Checkout API~CRITICAL] PDOException: Connection refused`).
+* **Diagnóstico Completo:** mensagem, arquivo relativo e número da linha do incidente.
+* **Stack Trace Protegido:** rastreamento técnico recolhido dentro de `<details>` em Markdown legível.
+* **Payload Sanitizado:** dados da requisição com ocultação de senhas, cartões, e-mails e CPFs.
+* **Labels Automáticas:** marcadas como `bug`, `automated-report` e `severity:critical` (ou `severity:warning`).
+* **Deduplicação Inteligente:** se a issue já estiver aberta, adiciona um comentário de reincidência em vez de abrir duplicatas.
+
+### 🔑 1. Como Obter o Token de Acesso (PAT)
+
+Para permitir que o handler crie issues na API do GitHub:
+
+1. **Recomendado (Fine-grained Personal Access Token):**
+   * Acesse **GitHub > Settings > Developer Settings > Personal Access Tokens > [Fine-grained tokens](https://github.com/settings/tokens?type=beta)**.
+   * Defina um nome amigável (ex: `ErrorTracker - MeuApp Produção`) e selecione o repositório de destino.
+   * Na seção **Repository permissions**, configure:
+     * **Issues:** `Read and write`
+   * Clique em **Generate token** e guarde o valor gerado (iniciado em `github_pat_...`).
+
+2. **Alternativo (Tokens Classic):**
+   * Acesse **Personal access tokens > [Tokens (classic)](https://github.com/settings/tokens)** e selecione o escopo **`repo`** (para repositórios privados) ou **`public_repo`** (para repositórios públicos).
+
+> [!CAUTION]
+> **Segurança:** Nunca comite tokens no código-fonte! Carregue-os sempre a partir de variáveis de ambiente (`$_ENV['GITHUB_TOKEN']` ou `getenv('GITHUB_TOKEN')`) ou do gerenciador de segredos da sua hospedagem.
+
+---
+
+### ⚙️ 2. Parâmetros de Configuração
+
+| Parâmetro | Tipo | Padrão | Descrição |
+| :--- | :--- | :--- | :--- |
+| `token` | `string` | *(obrigatório)* | Personal Access Token (PAT) do GitHub com permissão de escrita em issues. |
+| `repository` | `string` | *(obrigatório)* | Repositório no formato `usuario/repo` ou `organizacao/repo`. |
+| `application` | `string` | `'ErrorTracker'` | Nome amigável do serviço ou ambiente para o prefixo do título da issue. |
+| `notifySeverities` | `?array<Severity>` | `[CRITICAL, WARNING]` | Níveis que disparam abertura de issue. Se `null`, notifica todas. |
+| `timeoutSeconds` | `int` | `3` | Timeout em segundos da requisição HTTP cURL (não bloqueia a resposta do usuário). |
+| `deduplicateOpenIssues` | `bool` | `true` | Se `true`, busca issue aberta com o mesmo hash e insere comentário de reincidência. |
+| `bodyFormatter` | `?callable` | `null` | Closure customizada `callable(ErrorContext $context): string` para formatar o corpo em Markdown. |
+
+---
+
+### 💡 3. Exemplos Práticos de Configuração
+
+#### Exemplo A: Configuração Essencial para Produção
+```php
+use HeliomarPM\ErrorTracker\Handlers\GitHubIssueHandler;
+use HeliomarPM\ErrorTracker\Severity;
+
+$github = new GitHubIssueHandler(
+    token: $_ENV['GITHUB_TOKEN'],
+    repository: 'minha-empresa/meu-sistema',
+    application: 'Checkout API (Prod)',
+    notifySeverities: [Severity::CRITICAL, Severity::WARNING],
+    timeoutSeconds: 3,
+    deduplicateOpenIssues: true
+);
+
+$tracker->addHandler($github);
+```
+
+#### Exemplo B: Apenas Falhas Críticas (Zero Ruído no Backlog)
+Ideal para times que só desejam issues no GitHub quando a aplicação sofrer falhas graves ou indisponibilidade:
+```php
+$github = new GitHubIssueHandler(
+    token: $_ENV['GITHUB_TOKEN'],
+    repository: 'minha-empresa/meu-sistema',
+    notifySeverities: [Severity::CRITICAL] // Ignora Warnings, Notices e Deprecations
+);
+```
+
+#### Exemplo C: Deduplicação Inteligente com Reincidência Automática
+Com `deduplicateOpenIssues: true` (ativado por padrão):
+1. **Primeira Ocorrência:** O handler cria uma nova issue com o hash exclusivo do erro no rodapé (`*ID do Erro: eba887...*`).
+2. **Ocorrências Seguintes:** Enquanto a issue permanecer **aberta**, novas falhas idênticas não geram spam de issues. O ErrorTracker insere um comentário de reincidência com timestamp:
+   ```markdown
+   🔄 **Reincidência Detectada** em 2026-10-25 17:30:00
+
+   O incidente voltou a ser interceptado pela aplicação.
+   - **Severidade:** `CRITICAL`
+   - **Mensagem:** `SQLSTATE[HY000] [2002] Connection refused`
+   - **Arquivo:** `src/Database/Connection.php:28`
+   - **Hash ID:** `eba8872610b3e3188d4da1c5c714cdcf`
+   ```
+3. **Resolução:** Quando o time fecha a issue no GitHub, caso o bug volte a acontecer no futuro, uma nova issue é aberta normalmente!
+
+#### Exemplo D: Markdown Customizado com Checklist e Menção ao Time
+Você pode sobrescrever completamente o corpo da issue via closure:
+```php
+use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Handlers\GitHubIssueHandler;
+
+$github = new GitHubIssueHandler(
+    token: $_ENV['GITHUB_TOKEN'],
+    repository: 'minha-empresa/meu-sistema',
+    application: 'API Vendas',
+    bodyFormatter: function (ErrorContext $context): string {
+        return <<<MARKDOWN
+        ### 🚨 Incidente Detectado em {$context->serverName}
+
+        - **Mensagem:** `{$context->message}`
+        - **Origem:** `{$context->relativeFile}:{$context->line}`
+        - **Rota:** `{$context->requestMethod} {$context->requestUri}`
+        - **Usuário:** {$context->userName}
+        - **Hash:** `{$context->hash}`
+
+        #### 📋 Checklist de Investigação
+        - [ ] Validar logs no Grafana/Loki
+        - [ ] Reproduzir o payload em ambiente local
+        - [ ] Criar Pull Request com teste de regressão
+
+        #### 🔍 Rastreamento Técnico
+        <details>
+        <summary>Expandir Stack Trace</summary>
+
+        ```php
+        {$context->trace}
+        ```
+        </details>
+
+        /cc @time-sustentacao @tech-lead
+        MARKDOWN;
+    }
+);
+```
+
+---
+
 ## 🛠️ Uso como Logger PSR-3 e Logs Manuais
 
-Por implementar `Psr\Log\LoggerInterface`, você pode usar métodos padronizados do PHP-FIG ou injetar o `ErrorTracker` em containers de injeção de dependência:
+Por implementar `Psr\Log\LoggerInterface`, você pode usar métodos padronizados do PHP-FIG ou injetar o `ErrorTracker` em qualquer container moderno de injeção de dependência:
 
 ```php
 use Psr\Log\LogLevel;
 
-// Métodos padrão da PSR-3
-$tracker->info("Processamento de pedido #1042 iniciado.");
-$tracker->warning("Estoque do produto X abaixo do limite mínimo.");
-$tracker->error("Falha ao comunicar com gateway de pagamento.", ['pedido_id' => 1042]);
+// 1. Logs de Negócio do Dia a Dia (Sem ruído de exceção ou stack trace sintético)
+$tracker->info("Tentativa de login com senha inválida", [
+    'username' => 'carlos.dev',
+    'ip'       => '192.168.1.100',
+    'tentativa' => 3,
+]);
+
+// 2. Alertas Operacionais
+$tracker->warning("Estoque do produto #458 abaixo do limite mínimo de segurança.");
+
+// 3. Falhas com Exceção Encadeada
+$tracker->error("Falha ao comunicar com gateway de pagamento.", [
+    'pedido_id' => 1042,
+    'exception' => $exception, // Se passado, o stack trace real da exceção é preservado!
+]);
+
+// 4. Falhas Críticas de Sistema
 $tracker->critical("Banco de dados principal inacessível.");
 
-// Uso com o método genérico log()
-$tracker->log(LogLevel::ERROR, "Mensagem customizada", ['extra' => 'dados']);
+// 5. Uso com o método genérico log()
+$tracker->log(LogLevel::NOTICE, "Rotina de limpeza de sessões expiradas finalizada.");
 ```
 
 ## 🛡️ Criando Handlers Personalizados
