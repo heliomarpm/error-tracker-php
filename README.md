@@ -330,24 +330,20 @@ Sinta-se livre para utilizar, customizar e estender estas bibliotecas nos seus a
 
 ---
 <!-- Sponsor badges -->
-
-
-<!-- Packagist badges -->
-
-
-
-<!-- other badges -->
-
-[url-codefactor]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker-php
-[url-codefactor-badge]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker-php/badge
 [url-github-sponsors]: https://github.com/sponsors/heliomarpm
 [url-github-sponsors-badge]: https://img.shields.io/badge/GitHub%20-Sponsor-1C1E26?style=for-the-badge&labelColor=1C1E26&color=db61a2
 [url-kofi]: https://ko-fi.com/heliomarpm
 [url-kofi-badge]: https://img.shields.io/badge/kofi-1C1E26?style=for-the-badge&labelColor=1C1E26&color=ff5f5f
 [url-liberapay]: https://liberapay.com/heliomarpm
 [url-liberapay-badge]: https://img.shields.io/badge/liberapay-1C1E26?style=for-the-badge&labelColor=1C1E26&color=f6c915
-[url-packagist]: https://packagist.org/packages/heliomarpm/error-tracker-php
-[url-packagist-badge]: https://img.shields.io/packagist/v/heliomarpm/error-tracker-php
-[url-packagist-downloads-badge]: https://img.shields.io/packagist/dt/heliomarpm/error-tracker-php
 [url-paypal]: https://bit.ly/paypal-sponsor-heliomarpm
 [url-paypal-badge]: https://img.shields.io/badge/donate%20on-paypal-1C1E26?style=for-the-badge&labelColor=1C1E26&color=0475fe
+
+<!-- Packagist badges -->
+[url-packagist]: https://packagist.org/packages/heliomarpm/error-tracker
+[url-packagist-badge]: https://img.shields.io/packagist/v/heliomarpm/error-tracker
+[url-packagist-downloads-badge]: https://img.shields.io/packagist/dt/heliomarpm/error-tracker
+
+<!-- other badges -->
+[url-codefactor]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker-php
+[url-codefactor-badge]: https://www.codefactor.io/repository/github/heliomarpm/error-tracker-php/badge
