@@ -41,9 +41,14 @@ class DatabaseHandler implements HandlerInterface
       $stmt->execute([
           ':hash' => $context->hash,
           ':severity' => $context->severity->value,
+          ':error_class' => $context->exceptionClass,
+          ':previous_class' => $context->previousClass,
           ':message' => $context->message,
-          ':file' => $context->file,
+          ':file' => $context->relativeFile,
           ':line' => $context->line,
+          ':method' => $context->requestMethod,
+          ':uri' => substr($context->requestUri, 0, 255),
+          ':user_name' => $context->userName !== null ? substr($context->userName, 0, 100) : null,
           ':trace' => $context->trace,
           ':payload' => $payloadJson,
       ]);
@@ -56,16 +61,16 @@ class DatabaseHandler implements HandlerInterface
   {
     if ($driver === 'sqlite') {
       return "INSERT INTO {$this->tableName}
-              (hash, severity, message, file, line, trace, payload, created_at, updated_at, incidents)
+              (hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
               VALUES
-              (:hash, :severity, :message, :file, :line, :trace, :payload, datetime('now'), datetime('now'), 1)
+              (:hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, datetime('now'), datetime('now'), 1)
               ON CONFLICT(hash) DO UPDATE SET updated_at = datetime('now'), incidents = incidents + 1;";
     }
 
     return "INSERT INTO {$this->tableName}
-            (hash, severity, message, file, line, trace, payload, created_at, updated_at, incidents)
+            (hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
             VALUES
-            (:hash, :severity, :message, :file, :line, :trace, :payload, NOW(), NOW(), 1)
+            (:hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, NOW(), NOW(), 1)
             ON DUPLICATE KEY UPDATE updated_at = NOW(), incidents = incidents + 1;";
   }
 
@@ -78,9 +83,14 @@ class DatabaseHandler implements HandlerInterface
               `id` INTEGER PRIMARY KEY AUTOINCREMENT,
               `hash` VARCHAR(32) NOT NULL,
               `severity` VARCHAR(20) NOT NULL,
+              `error_class` VARCHAR(150) NOT NULL,
+              `previous_class` VARCHAR(150) NULL,
               `message` TEXT NOT NULL,
               `file` VARCHAR(255) NOT NULL,
               `line` INT NOT NULL,
+              `method` VARCHAR(10) NULL,
+              `uri` VARCHAR(255) NULL,
+              `user_name` VARCHAR(100) NULL,
               `trace` TEXT NOT NULL,
               `payload` TEXT NOT NULL,
               `created_at` DATETIME NOT NULL,
@@ -88,23 +98,34 @@ class DatabaseHandler implements HandlerInterface
               `incidents` INT DEFAULT 1,
               CONSTRAINT `uq_hash` UNIQUE (`hash`)
           );
-          CREATE INDEX IF NOT EXISTS `idx_severity` ON `{$this->tableName}` (`severity`);";
+          CREATE INDEX IF NOT EXISTS `idx_severity` ON `{$this->tableName}` (`severity`);
+          CREATE INDEX IF NOT EXISTS `idx_error_class` ON `{$this->tableName}` (`error_class`);
+          CREATE INDEX IF NOT EXISTS `idx_updated_at` ON `{$this->tableName}` (`updated_at`);
+          CREATE INDEX IF NOT EXISTS `idx_incidents` ON `{$this->tableName}` (`incidents`);";
     } else {
       // Sintaxe compatível com MySQL / MariaDB
       $sql = "CREATE TABLE IF NOT EXISTS `{$this->tableName}` (
               `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
               `hash` VARCHAR(32) NOT NULL,
               `severity` VARCHAR(20) NOT NULL,
+              `error_class` VARCHAR(150) NOT NULL,
+              `previous_class` VARCHAR(150) NULL,
               `message` TEXT NOT NULL,
               `file` VARCHAR(255) NOT NULL,
               `line` INT NOT NULL,
+              `method` VARCHAR(10) NULL,
+              `uri` VARCHAR(255) NULL,
+              `user_name` VARCHAR(100) NULL,
               `trace` LONGTEXT NOT NULL,
               `payload` JSON NOT NULL,
               `created_at` DATETIME NOT NULL,
               `updated_at` DATETIME NOT NULL,
               `incidents` INT DEFAULT 1,
               UNIQUE KEY `uq_hash` (`hash`),
-              INDEX `idx_severity` (`severity`)
+              INDEX `idx_severity` (`severity`),
+              INDEX `idx_error_class` (`error_class`),
+              INDEX `idx_updated_at` (`updated_at`),
+              INDEX `idx_incidents` (`incidents`)
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     }
 

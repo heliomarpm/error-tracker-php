@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace HeliomarPM\ErrorTracker\Tests\Unit;
 
 use ErrorException;
+use Exception;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Handlers\DatabaseHandler;
 use HeliomarPM\ErrorTracker\Severity;
 use PDO;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class DatabaseHandlerTest extends TestCase
 {
@@ -43,9 +45,12 @@ final class DatabaseHandlerTest extends TestCase
         $this->assertNotEmpty($row);
         $this->assertSame($context->hash, $row['hash']);
         $this->assertSame('critical', $row['severity']);
+        $this->assertSame('ErrorException', $row['error_class']);
+        $this->assertNull($row['previous_class']);
         $this->assertSame('Falha de conexão com serviço', $row['message']);
-        $this->assertSame('/app/Order.php', $row['file']);
+        $this->assertSame('app/Order.php', $row['file']);
         $this->assertSame(42, (int)$row['line']);
+        $this->assertSame('CLI', $row['method']);
         $this->assertSame(1, (int)$row['incidents']);
 
         // 2ª Ocorrência do mesmo erro (mesmo hash)
@@ -56,5 +61,31 @@ final class DatabaseHandlerTest extends TestCase
         $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
 
         $this->assertSame(2, (int)$row2['incidents']);
+    }
+
+    public function testInsertsChainedExceptionWithUserDetails(): void
+    {
+        $root = new RuntimeException('Falha interna de disco', 500);
+        $exception = new Exception('Erro fatal no checkout', 503, $root);
+        $context = new ErrorContext(
+            $exception,
+            [
+                'post' => ['valor' => 199.90],
+                'context' => ['user' => 'Heliomar Dev'],
+            ],
+            Severity::CRITICAL
+        );
+
+        $this->handler->report($context);
+
+        $stmt = $this->pdo->query('SELECT * FROM test_errors WHERE hash = ' . $this->pdo->quote($context->hash));
+        $this->assertNotFalse($stmt);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $this->assertNotEmpty($row);
+        $this->assertSame('Exception', $row['error_class']);
+        $this->assertSame('RuntimeException', $row['previous_class']);
+        $this->assertSame('Heliomar Dev', $row['user_name']);
+        $this->assertStringContainsString('199.9', $row['payload']);
     }
 }

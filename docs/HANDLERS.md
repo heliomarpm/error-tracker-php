@@ -28,6 +28,58 @@ $tracker->addHandler($handler);
 
 * `autoCreate = true`: Cria a tabela e índices automaticamente na primeira execução se ainda não existirem.
 
+### Estrutura da Tabela e Índices
+
+O handler armazena dados estruturados para permitir agregações analíticas velozes sem depender de parsing de JSON:
+
+| Coluna | Tipo (MySQL) | Tipo (SQLite) | Descrição |
+| :--- | :--- | :--- | :--- |
+| `id` | `BIGINT AUTO_INCREMENT` | `INTEGER PRIMARY KEY` | Identificador único sequencial |
+| `hash` | `VARCHAR(32) UNIQUE` | `VARCHAR(32) UNIQUE` | Hash MD5 do erro (arquivo + linha + mensagem) |
+| `severity` | `VARCHAR(20)` | `VARCHAR(20)` | Nível de severidade (`CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`) |
+| `error_class` | `VARCHAR(150)` | `VARCHAR(150)` | Nome da classe da exceção (ex: `PDOException`, `RuntimeException`) |
+| `previous_class`| `VARCHAR(150) NULL` | `VARCHAR(150) NULL` | Classe da causa raiz encadeada (`$e->getPrevious()`) |
+| `message` | `TEXT` | `TEXT` | Mensagem do erro |
+| `file` | `VARCHAR(255)` | `VARCHAR(255)` | Caminho relativo limpo do arquivo gerador |
+| `line` | `INT` | `INT` | Linha do erro |
+| `method` | `VARCHAR(10) NULL` | `VARCHAR(10) NULL` | Método HTTP da requisição (`GET`, `POST`, `CLI`, etc.) |
+| `uri` | `VARCHAR(255) NULL` | `VARCHAR(255) NULL` | Rota/URI onde ocorreu o incidente |
+| `user_name` | `VARCHAR(100) NULL` | `VARCHAR(100) NULL` | Nome ou identificador do usuário autenticado no contexto |
+| `trace` | `LONGTEXT` | `TEXT` | Rastreamento de pilha (Stack Trace) legível |
+| `payload` | `JSON` | `TEXT` | Payload sanitizado completo em JSON (GET, POST, SERVER, etc.) |
+| `created_at` | `DATETIME` | `DATETIME` | Data e hora do primeiro disparo |
+| `updated_at` | `DATETIME` | `DATETIME` | Data e hora da última reincidência |
+| `incidents` | `INT DEFAULT 1` | `INT DEFAULT 1` | Contador automático de ocorrências |
+
+**Índices de Alta Performance Criados Automaticamente:**
+* `idx_severity`: Filtro por criticidade em painéis e relatórios.
+* `idx_error_class`: Agrupamento e contagem por tipo de exceção.
+* `idx_updated_at`: Ordenação de incidentes recentes.
+* `idx_incidents`: Identificação rápida dos gargalos mais reincidentes.
+
+### Consultas Analíticas Úteis
+
+```sql
+-- Top 10 erros mais reincidentes
+SELECT error_class, message, file, line, incidents, updated_at
+FROM error_tracker
+ORDER BY incidents DESC
+LIMIT 10;
+
+-- Incidentes críticos nas últimas 24 horas
+SELECT id, error_class, message, uri, incidents, updated_at
+FROM error_tracker
+WHERE severity = 'CRITICAL' AND updated_at >= NOW() - INTERVAL 1 DAY
+ORDER BY updated_at DESC;
+
+-- Erros agrupados por rota/endpoint da aplicação
+SELECT method, uri, COUNT(*) as unique_errors, SUM(incidents) as total_occurrences
+FROM error_tracker
+WHERE uri IS NOT NULL
+GROUP BY method, uri
+ORDER BY total_occurrences DESC;
+```
+
 ---
 
 ## 2. WebhookHandler (Slack / Discord / Teams / Genérico)
@@ -104,12 +156,21 @@ $tracker->addHandler($handler);
 ## 5. FilelogHandler
 
 Grava logs estruturados em disco com rotação diária automática por severidade e bloqueio exclusivo concorrente (`LOCK_EX`).
+Por padrão, utiliza o template `filelog.tpl`, gerando cabeçalhos de diagnóstico limpos (tipo de erro, causa raiz encadeada, usuário, memória, hash e stack trace simplificado).
 
 ```php
 use HeliomarPM\ErrorTracker\Handlers\FilelogHandler;
 
 $handler = new FilelogHandler(__DIR__ . '/storage/logs');
 $tracker->addHandler($handler);
+```
+
+Você também pode fornecer um template customizado:
+```php
+$handler = new FilelogHandler(
+    logDirectory: __DIR__ . '/storage/logs',
+    templateOrPath: __DIR__ . '/templates/custom_log.tpl'
+);
 ```
 
 ---
