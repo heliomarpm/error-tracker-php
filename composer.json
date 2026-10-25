@@ -1,0 +1,75 @@
+{
+  "name": "heliomarpm/error-tracker",
+  "description": "Biblioteca para monitoramento e reporte de erros em PHP",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Heliomar P. Marques",
+      "email": "heliomarpm@gmail.com"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/heliomarpm/error-tracker/issues",
+    "source": "https://github.com/heliomarpm/error-tracker"
+  },
+  "keywords": [
+    "error",
+    "tracker",
+    "php",
+    "library"
+  ],
+  "autoload": {
+    "psr-4": {
+      "HeliomarPM\\ErrorTracker\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "HeliomarPM\\ErrorTracker\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "format": "pint --test --parallel --max-processes=4 --dirty",
+    "format:fix": "pint --parallel --max-processes=4 --repair --dirty",
+    "format:full": "pint --parallel --max-processes=4 --repair",
+    "format:def": "pint --preset=psr12 --parallel --max-processes=4 --repair",
+    "lint": "phpstan analyse",
+    "refactor": "rector process --dry-run",
+    "refactor:apply": "rector process",
+    "test": "phpunit --configuration phpunit.xml --colors=always",
+    "test:v": "phpunit --configuration phpunit.xml --colors=always --debug",
+    "test:coverage": "php -d xdebug.mode=coverage vendor/bin/phpunit --configuration phpunit.xml --colors=always --coverage-text",
+    "test:coverage:html": "php -d xdebug.mode=coverage vendor/bin/phpunit --configuration phpunit.xml --coverage-html coverage/",
+    "bench": "php ./benchmarks/run.php",
+    "perform": "vendor/bin/phpbench run --report=aggregate",
+    "start": "php -S localhost:8000 -t ./demo",
+    "check": [
+      "@format",
+      "@lint",
+      "@refactor"
+    ],
+    "fix": [
+      "@format:fix",
+      "@refactor:apply"
+    ],
+    "qa": [
+      "@test",
+      "@bench",
+      "@perform"
+    ],
+    "reset": [
+      "rm -rf vendor composer.lock",
+      "composer install"
+    ]
+  },
+  "minimum-stability": "stable",
+  "require": {
+    "psr/simple-cache": "^3.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0",
+    "phpstan/phpstan": "*",
+    "laravel/pint": "^1.32"
+  }
+}
