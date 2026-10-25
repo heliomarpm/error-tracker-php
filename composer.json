@@ -1,6 +1,6 @@
 {
   "name": "heliomarpm/error-tracker",
-  "description": "Biblioteca para monitoramento e reporte de erros em PHP",
+  "description": "Biblioteca moderna para rastreamento, diagnóstico e alerta de incidentes. Captura falhas globais, previne vazamento de dados sensíveis (sanitização inteligente), evita avalanche de alertas (*anti-flood* via cache PSR-16), implementa `PSR-3 LoggerInterface` e despacha relatórios estruturados para múltiplos canais (Banco de Dados MySQL/SQLite, ChatOps Slack/Discord, GitHub Issues, E-mail e Arquivos de Log)",
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -16,8 +16,14 @@
   "keywords": [
     "error",
     "tracker",
-    "php",
-    "library"
+    "exception-handler",
+    "logging",
+    "psr-3",
+    "psr-16",
+    "anti-flood",
+    "crash-reporter",
+    "incident-monitor",
+    "php"
   ],
   "autoload": {
     "psr-4": {
@@ -43,7 +49,7 @@
     "test:coverage:html": "php -d xdebug.mode=coverage vendor/bin/phpunit --configuration phpunit.xml --coverage-html coverage/",
     "bench": "php ./benchmarks/run.php",
     "perform": "vendor/bin/phpbench run --report=aggregate",
-    "start": "php -S localhost:8000 -t ./demo",
+    "start": "php -S localhost:8000 -t ./demo demo/router.php",
     "check": [
       "@format",
       "@lint",
@@ -63,9 +69,14 @@
       "composer install"
     ]
   },
+  "config": {
+    "process-timeout": 0
+  },
   "minimum-stability": "stable",
   "require": {
-    "psr/simple-cache": "^3.0"
+    "php": "^8.2",
+    "psr/simple-cache": "^3.0",
+    "psr/log": "^3.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0",
