@@ -7,7 +7,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\ErrorTracker;
+use HeliomarPM\ErrorTracker\Handlers\DatabaseHandler;
 use HeliomarPM\ErrorTracker\Handlers\EmailHandler;
+use HeliomarPM\ErrorTracker\Handlers\FilelogHandler;
 use HeliomarPM\ErrorTracker\Handlers\GitHubIssueHandler;
 use HeliomarPM\ErrorTracker\Handlers\WebhookHandler;
 use HeliomarPM\ErrorTracker\Severity;
@@ -107,6 +109,42 @@ $emailTextHandler = new EmailHandler('suporte@empresa.com', format: 'text');
 $githubHandler = new GitHubIssueHandler('ghp_mock_token_demo', 'heliomarpm/error-tracker-demo');
 $slackHandler = new WebhookHandler('https://hooks.slack.com/...', format: 'slack');
 $discordHandler = new WebhookHandler('https://discord.com/api/webhooks/...', format: 'discord');
+$filelogHandler = new FilelogHandler(__DIR__ . '/storage/logs');
+$sqliteMemoryPdo = new PDO('sqlite::memory:');
+$databaseHandler = new DatabaseHandler($sqliteMemoryPdo, tableName: 'error_tracker', autoCreate: true);
+
+$buildPreviews = function (?ErrorContext $context) use (
+    $emailHtmlHandler,
+    $emailTextHandler,
+    $githubHandler,
+    $slackHandler,
+    $discordHandler,
+    $filelogHandler,
+    $databaseHandler
+): array {
+    if ($context === null) {
+        return [];
+    }
+
+    return [
+        'email_html' => $emailHtmlHandler->renderBody($context),
+        'email_text' => $emailTextHandler->renderBody($context),
+        'github_title' => $githubHandler->renderTitle($context),
+        'github_markdown' => $githubHandler->renderBody($context),
+        'slack_json' => $slackHandler->buildPayload($context),
+        'discord_json' => $discordHandler->buildPayload($context),
+        'filelog' => [
+            'filename' => $filelogHandler->getLogFilename($context),
+            'content' => $filelogHandler->renderEntry($context),
+        ],
+        'database' => [
+            'table' => 'error_tracker',
+            'query_mysql' => $databaseHandler->getInsertQuery('mysql'),
+            'query_sqlite' => $databaseHandler->getInsertQuery('sqlite'),
+            'record' => $databaseHandler->buildRecord($context),
+        ],
+    ];
+};
 
 try {
     if ($action === 'test_flood') {
@@ -146,14 +184,7 @@ try {
                 'file' => $capturedContext?->file,
                 'line' => $capturedContext?->line,
             ],
-            'previews' => [
-                'email_html' => $capturedContext ? $emailHtmlHandler->renderBody($capturedContext) : '',
-                'email_text' => $capturedContext ? $emailTextHandler->renderBody($capturedContext) : '',
-                'github_title' => $capturedContext ? $githubHandler->renderTitle($capturedContext) : '',
-                'github_markdown' => $capturedContext ? $githubHandler->renderBody($capturedContext) : '',
-                'slack_json' => $capturedContext ? $slackHandler->buildPayload($capturedContext) : [],
-                'discord_json' => $capturedContext ? $discordHandler->buildPayload($capturedContext) : [],
-            ],
+            'previews' => $buildPreviews($capturedContext),
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit(0);
     }
@@ -214,14 +245,7 @@ try {
             'sanitized_post' => $capturedContext->requestData['post'] ?? [],
             'timestamp' => date('Y-m-d H:i:s'),
         ],
-        'previews' => [
-            'email_html' => $emailHtmlHandler->renderBody($capturedContext),
-            'email_text' => $emailTextHandler->renderBody($capturedContext),
-            'github_title' => $githubHandler->renderTitle($capturedContext),
-            'github_markdown' => $githubHandler->renderBody($capturedContext),
-            'slack_json' => $slackHandler->buildPayload($capturedContext),
-            'discord_json' => $discordHandler->buildPayload($capturedContext),
-        ],
+        'previews' => $buildPreviews($capturedContext),
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {

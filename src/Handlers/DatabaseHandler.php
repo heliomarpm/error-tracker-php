@@ -35,26 +35,62 @@ class DatabaseHandler implements HandlerInterface
 
     try {
       $stmt = $this->pdo->prepare($sql);
-
-      $payloadJson = json_encode($context->requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+      $record = $this->buildRecord($context);
 
       $stmt->execute([
-          ':hash' => $context->hash,
-          ':severity' => $context->severity->value,
-          ':error_class' => $context->exceptionClass,
-          ':previous_class' => $context->previousClass,
-          ':message' => $context->message,
-          ':file' => $context->relativeFile,
-          ':line' => $context->line,
-          ':method' => $context->requestMethod,
-          ':uri' => substr($context->requestUri, 0, 255),
-          ':user_name' => $context->userName !== null ? substr($context->userName, 0, 100) : null,
-          ':trace' => $context->trace,
-          ':payload' => $payloadJson,
+          ':hash' => $record['hash'],
+          ':severity' => $record['severity'],
+          ':error_class' => $record['error_class'],
+          ':previous_class' => $record['previous_class'],
+          ':message' => $record['message'],
+          ':file' => $record['file'],
+          ':line' => $record['line'],
+          ':method' => $record['method'],
+          ':uri' => $record['uri'],
+          ':user_name' => $record['user_name'],
+          ':trace' => $record['trace'],
+          ':payload' => $record['payload'],
       ]);
     } catch (PDOException $e) {
       error_log("HeliomarPM ErrorTracker DatabaseHandler falhou ao inserir erro:\n[{$e->getLine()}] {$e->getMessage()}");
     }
+  }
+
+  /**
+   * Monta o array associativo dos dados estruturados para persistência (público para testes e preview na Demo).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildRecord(ErrorContext $context): array
+  {
+    $payloadJson = json_encode($context->requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+
+    return [
+        'hash' => $context->hash,
+        'severity' => $context->severity->value,
+        'error_class' => $context->exceptionClass,
+        'previous_class' => $context->previousClass,
+        'message' => $context->message,
+        'file' => $context->relativeFile,
+        'line' => $context->line,
+        'method' => $context->requestMethod,
+        'uri' => substr($context->requestUri, 0, 255),
+        'user_name' => $context->userName !== null ? substr($context->userName, 0, 100) : null,
+        'trace' => $context->trace,
+        'payload' => $payloadJson,
+        'created_at' => date('Y-m-d H:i:s'),
+        'updated_at' => date('Y-m-d H:i:s'),
+        'incidents' => 1,
+    ];
+  }
+
+  /**
+   * Retorna a instrução SQL de inserção/upsert conforme o driver de banco desejado.
+   */
+  public function getInsertQuery(?string $driver = null): string
+  {
+    $targetDriver = $driver ?? (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    return $this->buildInsertQuery($targetDriver);
   }
 
   private function buildInsertQuery(string $driver): string

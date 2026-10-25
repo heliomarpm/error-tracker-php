@@ -1322,6 +1322,14 @@
           <span class="tab-indicator"></span>
           <span>🤖 Discord Webhook</span>
         </button>
+        <button class="tab-btn" onclick="switchTab('filelog', this)">
+          <span class="tab-indicator"></span>
+          <span>📁 Log em Arquivo</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('database', this)">
+          <span class="tab-indicator"></span>
+          <span>🗄️ Banco de Dados (SQL)</span>
+        </button>
       </div>
 
       <!-- Tab Panes -->
@@ -1371,6 +1379,52 @@
           <div style="margin-top: 14px; font-size: 11px; color: #6E7681; font-family: var(--font-mono);">
             Payload JSON:
             <pre id="discordJsonPre" style="margin-top: 6px; color: #8B949E; white-space: pre-wrap;"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-filelog" class="tab-pane">
+        <div class="preview-card" style="background: #090E17;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">📁</span>
+              <span id="filelogPath" style="font-family: var(--font-mono); font-size: 12px; color: var(--cyan); word-break: break-all;">storage/logs/CRITICAL_20261025.log</span>
+            </div>
+            <span style="font-size: 11px; color: #34D399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 8px; border-radius: 4px; font-weight: 700;">LOCK_EX Ativo</span>
+          </div>
+          <pre id="filelogPre" style="font-family: var(--font-mono); font-size: 12px; color: #CBD5E1; white-space: pre-wrap; line-height: 1.6; max-height: 420px; overflow-y: auto;"></pre>
+        </div>
+      </div>
+
+      <div id="pane-database" class="tab-pane">
+        <div class="preview-card" style="background: #0D1321;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">🗄️</span>
+              <span style="font-family: var(--font-heading); font-size: 14px; color: #FFF; font-weight: 700;">Tabela: <span style="color: var(--cyan); font-family: var(--font-mono);">error_tracker</span></span>
+            </div>
+            <span style="font-size: 11px; color: var(--cyan); background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.3); padding: 3px 8px; border-radius: 4px; font-weight: 700;">Upsert com Deduplicação Automática</span>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">
+              Instrução SQL Executada (MySQL / MariaDB / SQLite):
+            </div>
+            <pre id="dbQueryPre" style="font-family: var(--font-mono); font-size: 11px; background: #080C14; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; color: #38BDF8; white-space: pre-wrap; line-height: 1.5;"></pre>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">
+              Registro Persistido (Colunas Estruturadas & Valores):
+            </div>
+            <div id="dbFieldsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;"></div>
+          </div>
+
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">
+              Payload Sanitizado em JSON (Coluna payload):
+            </div>
+            <pre id="dbPayloadPre" style="font-family: var(--font-mono); font-size: 11px; background: #080C14; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; color: #94A3B8; max-height: 140px; overflow-y: auto; white-space: pre-wrap;"></pre>
           </div>
         </div>
       </div>
@@ -1475,6 +1529,11 @@
         content = JSON.stringify(currentIncidentData.previews?.slack_json || {}, null, 2);
       } else if (activeTabId === 'discord') {
         content = JSON.stringify(currentIncidentData.previews?.discord_json || {}, null, 2);
+      } else if (activeTabId === 'filelog') {
+        content = currentIncidentData.previews?.filelog?.content || '';
+      } else if (activeTabId === 'database') {
+        const db = currentIncidentData.previews?.database || {};
+        content = "-- INSTRUÇÃO SQL:\n" + (db.query_mysql || db.query_sqlite || '') + "\n\n-- REGISTRO:\n" + JSON.stringify(db.record || {}, null, 2);
       }
 
       navigator.clipboard.writeText(content).then(() => {
@@ -1712,6 +1771,56 @@
         }
       }
       if (discordJsonPre) discordJsonPre.textContent = JSON.stringify(discord, null, 2);
+
+      // 6. Filelog
+      const filelog = data.previews.filelog || {};
+      const filelogPath = document.getElementById('filelogPath');
+      const filelogPre = document.getElementById('filelogPre');
+      if (filelogPath) filelogPath.textContent = filelog.filename || 'storage/logs/incident.log';
+      if (filelogPre) filelogPre.textContent = filelog.content || 'Sem entrada de log gerada.';
+
+      // 7. Database
+      const db = data.previews.database || {};
+      const dbQueryPre = document.getElementById('dbQueryPre');
+      const dbFieldsGrid = document.getElementById('dbFieldsGrid');
+      const dbPayloadPre = document.getElementById('dbPayloadPre');
+
+      if (dbQueryPre) dbQueryPre.textContent = (db.query_mysql || db.query_sqlite || '').trim();
+      if (dbPayloadPre) {
+        const rawPayload = db.record?.payload || '{}';
+        try {
+          dbPayloadPre.textContent = JSON.stringify(JSON.parse(rawPayload), null, 2);
+        } catch {
+          dbPayloadPre.textContent = rawPayload;
+        }
+      }
+      if (dbFieldsGrid && db.record) {
+        const rec = db.record;
+        const keysToDisplay = [
+          { key: 'hash', label: 'Hash (Deduplicação)' },
+          { key: 'severity', label: 'Severidade' },
+          { key: 'error_class', label: 'Classe da Exceção' },
+          { key: 'previous_class', label: 'Causa Raiz' },
+          { key: 'message', label: 'Mensagem' },
+          { key: 'file', label: 'Arquivo Relativo' },
+          { key: 'line', label: 'Linha' },
+          { key: 'method', label: 'Método HTTP' },
+          { key: 'uri', label: 'Rota / URI' },
+          { key: 'user_name', label: 'Usuário' },
+          { key: 'incidents', label: 'Reincidências' }
+        ];
+
+        dbFieldsGrid.innerHTML = keysToDisplay.map(item => {
+          const val = rec[item.key];
+          const displayVal = val === null || val === undefined ? '<span style="color: var(--text-dim); font-style: italic;">null</span>' : escapeHtml(String(val));
+          return `
+            <div style="background: rgba(14, 21, 36, 0.7); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;">
+              <div style="color: var(--text-muted); font-size: 11px; text-transform: uppercase;">${item.label}</div>
+              <div style="color: #FFF; font-family: var(--font-mono); font-size: 12px; word-break: break-all; margin-top: 2px;">${displayVal}</div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     let selectedIncidentForModal = null;

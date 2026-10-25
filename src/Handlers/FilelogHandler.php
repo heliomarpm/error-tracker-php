@@ -38,16 +38,33 @@ class FilelogHandler implements HandlerInterface
 
   public function report(ErrorContext $context): void
   {
-    if ($this->formatter !== null) {
-      $logEntry = ($this->formatter)($context);
-    } else {
-      $logEntry = $this->renderer->render($this->templatePath, $context);
-    }
+    $logEntry = $this->renderEntry($context);
 
     // Nome do arquivo rotacionado por dia e severidade
-    $file = "{$this->logDirectory}/{$context->severity->name}_" . date('Ymd') . '.log';
+    $file = $this->getLogFilename($context);
 
     // Salva preservando o UTF-8 natural do PHP com bloqueio exclusivo
     file_put_contents($file, $logEntry . PHP_EOL, FILE_APPEND | LOCK_EX);
+  }
+
+  /**
+   * Renderiza a entrada de log (público para permitir pré-visualização no Demo).
+   */
+  public function renderEntry(ErrorContext $context): string
+  {
+    if ($this->formatter !== null) {
+      return ($this->formatter)($context);
+    }
+
+    return $this->renderer->render($this->templatePath, $context);
+  }
+
+  /**
+   * Retorna o caminho do arquivo de log rotacionado para a severidade e data.
+   */
+  public function getLogFilename(ErrorContext $context, ?string $date = null): string
+  {
+    $dateStr = $date ?? date('Ymd');
+    return "{$this->logDirectory}/{$context->severity->name}_{$dateStr}.log";
   }
 }
