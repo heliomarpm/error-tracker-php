@@ -179,8 +179,11 @@ try {
     } elseif ($action === 'warning') {
         $tracker->warning('Uso de endpoint depreciado v1/pedidos detectado.');
     } elseif ($action === 'exception') {
+        $rootCause = new PDOException('SQLSTATE[HY000] [2002] Connection timed out ao conectar com cluster MySQL (porta 3306)', 2002);
         $fakeException = new RuntimeException(
-            (string)($input['error_message'] ?? 'Falha ao processar pagamento com cartão: Timeout no gateway')
+            (string)($input['error_message'] ?? 'Falha ao processar pagamento com cartão: Timeout no gateway de transações'),
+            500,
+            $rootCause
         );
         $tracker->handleException($fakeException);
     } else {
