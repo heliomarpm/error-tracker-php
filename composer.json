@@ -1,6 +1,6 @@
 {
   "name": "heliomarpm/error-tracker",
-  "description": "Biblioteca moderna para rastreamento, diagnóstico e alerta de incidentes. Captura falhas globais, previne vazamento de dados sensíveis (sanitização inteligente), evita avalanche de alertas (*anti-flood* via cache PSR-16), implementa `PSR-3 LoggerInterface` e despacha relatórios estruturados para múltiplos canais (Banco de Dados MySQL/SQLite, ChatOps Slack/Discord, GitHub Issues, E-mail e Arquivos de Log)",
+  "description": "Biblioteca PHP para rastreamento, diagnóstico e alerta de incidentes. Compatível com PSR-3, com sanitização de dados sensíveis, proteção anti-flood via PSR-16 e despacho para múltiplos canais (ChatOps, GitHub, Banco de Dados e E-mail).",
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -16,6 +16,14 @@
   "keywords": [
     "error",
     "tracker",
+    "error-tracker",
+    "error-tracking",
+    "error-handler",
+    "error-handling",
+    "error-report",
+    "error-reporting",
+    "error-logger",
+    "error-log",
     "exception-handler",
     "logging",
     "psr-3",
