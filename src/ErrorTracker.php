@@ -24,17 +24,222 @@ class ErrorTracker implements LoggerInterface
   /** @var callable|null */
   private $onCriticalCallback = null;
 
+  private string $appName = 'ErrorTracker';
+  private string $environment = 'production';
+  private ?string $serverName = null;
+  private ?string $userName = null;
+
+  /** @var (callable(): (string|Stringable|null))|null */
+  private $userResolver = null;
+
+  /** @var array<string, mixed> */
+  private array $extraContext = [];
+
   /**
    * Inicializa o rastreador.
    *
    * @param CacheInterface|null $cache Instância de cache (PSR-16) para evitar flood de alertas.
    * @param int $cacheTtlSeconds Tempo em segundos que um erro idêntico será silenciado (padrão 1 hora).
+   * @param string|null $userName Nome ou identificador estático do usuário padrão.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico invocado em runtime para resolver o usuário logado.
+   * @param string $appName Nome da aplicação.
+   * @param string $environment Ambiente de execução (ex: production, staging, development, local).
+   * @param string|null $serverName Nome do host ou servidor.
+   * @param array<string, mixed> $extraContext Metadados adicionais compartilhados com todos os handlers.
    */
-  public function __construct(?CacheInterface $cache = null, int $cacheTtlSeconds = 3600)
-  {
+  public function __construct(
+      ?CacheInterface $cache = null,
+      int $cacheTtlSeconds = 3600,
+      ?string $userName = null,
+      ?callable $userResolver = null,
+      string $appName = 'ErrorTracker',
+      string $environment = 'production',
+      ?string $serverName = null,
+      array $extraContext = []
+  ) {
     $this->sanitizer = new DataSanitizer();
     $this->cache = $cache;
     $this->cacheTtl = $cacheTtlSeconds;
+    $this->userName = $userName;
+    $this->userResolver = $userResolver;
+    $this->appName = $appName;
+    $this->environment = $environment;
+    $this->serverName = $serverName;
+    $this->extraContext = $extraContext;
+  }
+
+  /**
+   * Define ou atualiza os parâmetros globais da aplicação compartilhados com todos os handlers.
+   * Suporta named arguments (PHP 8) ou um array associativo de parâmetros.
+   *
+   * Exemplo com Named Arguments:
+   *   $tracker->parameters(
+   *       appName: 'Salvar ERP',
+   *       environment: 'production',
+   *       userResolver: fn() => $_SESSION['usuario']['nome'] ?? null
+   *   );
+   *
+   * Exemplo com Array Associativo:
+   *   $tracker->parameters([
+   *       'app_name' => 'Salvar ERP',
+   *       'environment' => 'staging',
+   *       'user_name' => 'admin',
+   *   ]);
+   *
+   * @param array<string, mixed>|string|null $appName Nome da aplicação ou array de parâmetros.
+   * @param string|null $environment Ambiente de execução (production, staging, dev, etc.).
+   * @param string|null $serverName Nome do host/servidor.
+   * @param string|null $userName Nome ou identificador estático do usuário.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolver o usuário.
+   * @param array<string, mixed> $extraContext Metadados extras compartilhados.
+   */
+  public function parameters(
+      array|string|null $appName = null,
+      ?string $environment = null,
+      ?string $serverName = null,
+      ?string $userName = null,
+      ?callable $userResolver = null,
+      array $extraContext = []
+  ): self {
+    if (is_array($appName)) {
+      $params = $appName;
+      if (isset($params['app_name']) || isset($params['appName']) || isset($params['application'])) {
+        $this->appName = (string)($params['app_name'] ?? ($params['appName'] ?? $params['application']));
+      }
+      if (isset($params['environment']) || isset($params['env']) || isset($params['ambiente'])) {
+        $this->environment = (string)($params['environment'] ?? ($params['env'] ?? $params['ambiente']));
+      }
+      if (isset($params['server_name']) || isset($params['serverName']) || isset($params['server']) || isset($params['host'])) {
+        $this->serverName = (string)($params['server_name'] ?? ($params['serverName'] ?? ($params['server'] ?? $params['host'])));
+      }
+      if (isset($params['user_name']) || isset($params['userName']) || isset($params['user']) || isset($params['usuario'])) {
+        $this->userName = (string)($params['user_name'] ?? ($params['userName'] ?? ($params['user'] ?? $params['usuario'])));
+      }
+      if (isset($params['user_resolver']) && is_callable($params['user_resolver'])) {
+        $this->userResolver = $params['user_resolver'];
+      } elseif (isset($params['userResolver']) && is_callable($params['userResolver'])) {
+        $this->userResolver = $params['userResolver'];
+      }
+      if (isset($params['extra_context']) && is_array($params['extra_context'])) {
+        $this->extraContext = array_merge($this->extraContext, $params['extra_context']);
+      } elseif (isset($params['extraContext']) && is_array($params['extraContext'])) {
+        $this->extraContext = array_merge($this->extraContext, $params['extraContext']);
+      } elseif (isset($params['context']) && is_array($params['context'])) {
+        $this->extraContext = array_merge($this->extraContext, $params['context']);
+      }
+      return $this;
+    }
+
+    if ($appName !== null) {
+      $this->appName = $appName;
+    }
+    if ($environment !== null) {
+      $this->environment = $environment;
+    }
+    if ($serverName !== null) {
+      $this->serverName = $serverName;
+    }
+    if ($userName !== null) {
+      $this->userName = $userName;
+    }
+    if ($userResolver !== null) {
+      $this->userResolver = $userResolver;
+    }
+    if (!empty($extraContext)) {
+      $this->extraContext = array_merge($this->extraContext, $extraContext);
+    }
+
+    return $this;
+  }
+
+  /**
+   * Retorna os parâmetros globais configurados.
+   *
+   * @return array<string, mixed>
+   */
+  public function getParameters(): array
+  {
+    return [
+        'appName' => $this->appName,
+        'environment' => $this->environment,
+        'serverName' => $this->serverName,
+        'userName' => $this->userName,
+        'extraContext' => $this->extraContext,
+    ];
+  }
+
+  /**
+   * Define o nome ou identificador do usuário ativo.
+   */
+  public function setUserName(?string $userName): self
+  {
+    $this->userName = $userName;
+    return $this;
+  }
+
+  public function getUserName(): ?string
+  {
+    return $this->userName;
+  }
+
+  /**
+   * Define um callback dinâmico para resolver o nome do usuário ativo em runtime.
+   * Exemplo: fn() => Auth::user()?->name ?? $_SESSION['usuario']['nome'] ?? null
+   */
+  public function setUserResolver(?callable $resolver): self
+  {
+    $this->userResolver = $resolver;
+    return $this;
+  }
+
+  public function setAppName(string $appName): self
+  {
+    $this->appName = $appName;
+    return $this;
+  }
+
+  public function getAppName(): string
+  {
+    return $this->appName;
+  }
+
+  public function setEnvironment(string $environment): self
+  {
+    $this->environment = $environment;
+    return $this;
+  }
+
+  public function getEnvironment(): string
+  {
+    return $this->environment;
+  }
+
+  public function setServerName(?string $serverName): self
+  {
+    $this->serverName = $serverName;
+    return $this;
+  }
+
+  public function getServerName(): ?string
+  {
+    return $this->serverName;
+  }
+
+  /**
+   * @param array<string, mixed> $extraContext
+   */
+  public function setExtraContext(array $extraContext): self
+  {
+    $this->extraContext = $extraContext;
+    return $this;
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function getExtraContext(): array
+  {
+    return $this->extraContext;
   }
 
   /**
@@ -57,10 +262,27 @@ class ErrorTracker implements LoggerInterface
   }
 
   /**
-   * Assume o controle das funções nativas de tratamento de erro do PHP.
+   * Assume o controle das funções nativas de tratamento de erro do PHP e opcionalmente define parâmetros globais.
+   *
+   * @param array<string, mixed>|string|null $appName Nome da aplicação ou array associativo de parâmetros.
+   * @param string|null $environment Ambiente de execução.
+   * @param string|null $serverName Nome do servidor/host.
+   * @param string|null $userName Nome do usuário padrão.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico de usuário.
+   * @param array<string, mixed> $extraContext Metadados adicionais compartilhados.
    */
-  public function register(): void
-  {
+  public function register(
+      array|string|null $appName = null,
+      ?string $environment = null,
+      ?string $serverName = null,
+      ?string $userName = null,
+      ?callable $userResolver = null,
+      array $extraContext = []
+  ): void {
+    if ($appName !== null || $environment !== null || $serverName !== null || $userName !== null || $userResolver !== null || !empty($extraContext)) {
+      $this->parameters($appName, $environment, $serverName, $userName, $userResolver, $extraContext);
+    }
+
     error_reporting(E_ALL);
     set_exception_handler([$this, "handleException"]);
     set_error_handler([$this, "handleError"]);
@@ -185,18 +407,47 @@ class ErrorTracker implements LoggerInterface
         'server' => $_SERVER,
     ];
 
-    if (!empty($extraContext)) {
-      $rawRequest['context'] = $extraContext;
+    $mergedContext = array_merge($this->extraContext, $extraContext);
+
+    if (!empty($mergedContext)) {
+      $rawRequest['context'] = $mergedContext;
     }
 
     $requestData = $this->sanitizer->sanitize($rawRequest);
 
     // 2. Constrói o DTO que agrupa todas as informações (incluindo o Hash MD5)
+    $resolvedUser = $mergedContext['userName']
+        ?? $mergedContext['user_name']
+        ?? $mergedContext['username']
+        ?? $mergedContext['user']
+        ?? $mergedContext['usuario']
+        ?? $mergedContext['usuario_nome']
+        ?? null;
+
+    if ($resolvedUser === null && $this->userResolver !== null) {
+      try {
+        $resolved = ($this->userResolver)();
+        if ($resolved !== null && $resolved !== '') {
+          $resolvedUser = (string)$resolved;
+        }
+      } catch (Throwable) {
+        // Absorve falhas no resolver customizado para manter a resiliência do rastreamento
+      }
+    }
+
+    if ($resolvedUser === null && $this->userName !== null) {
+      $resolvedUser = $this->userName;
+    }
+
     $context = new ErrorContext(
         $exception,
         $requestData,
         $severity,
-        isException: $isException
+        userName: $resolvedUser !== null ? (string)$resolvedUser : null,
+        isException: $isException,
+        appName: $this->appName,
+        environment: $this->environment,
+        serverName: $this->serverName
     );
 
     // 3. Verificação de Deduplicação via Cache

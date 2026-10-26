@@ -58,6 +58,12 @@ class TemplateRenderer
             'previous_message' => (string)($context->previousMessage ?? ''),
 
             // Contexto da Requisição e Ambiente
+            'app_name' => $context->appName,
+            'appName' => $context->appName,
+            'application' => $context->appName,
+            'environment' => $context->environment,
+            'ambiente' => $context->environment,
+            'env' => $context->environment,
             'request_method' => $context->requestMethod,
             'method' => $context->requestMethod,
             'request_uri' => $context->requestUri,
@@ -112,6 +118,11 @@ class TemplateRenderer
                         'EXCEPTION', 'IS_EXCEPTION' => $context->isException,
                         'NOT_EXCEPTION', 'MESSAGE_ONLY', 'IS_MESSAGE' => !$context->isException,
                         'TRACE', 'STACK_TRACE', 'HAS_TRACE' => $context->isException && !empty($tags['trace']),
+                        'APP_NAME', 'APPLICATION' => !empty($context->appName),
+                        'ENVIRONMENT', 'AMBIENTE', 'ENV' => !empty($context->environment),
+                        'PRODUCTION', 'PROD', 'ENV_PROD' => in_array(strtolower($context->environment), ['production', 'prod'], true),
+                        'STAGING', 'ENV_STAGING' => in_array(strtolower($context->environment), ['staging', 'stage'], true),
+                        'DEVELOPMENT', 'DEV', 'ENV_DEV', 'LOCAL' => in_array(strtolower($context->environment), ['development', 'dev', 'local'], true),
                         default => !empty($tags[strtolower($cond)] ?? '') || !empty($tags[$cond] ?? ''),
                     };
 

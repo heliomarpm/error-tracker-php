@@ -20,6 +20,7 @@ Causa Raiz:   {{previous_class}}: {{previous_message}}
 Rota/Método:  {{request_method}} {{request_uri}}
 Usuário:      {{usuario_nome}}
 Data/Hora:    {{timestamp}}
+Aplicação:   {{app_name}} ({{environment}})
 PHP / Serv.:  PHP {{php_version}} em {{server_name}}
 Memória:      {{memory_usage}}
 <!-- IF_TRACE -->

@@ -7,6 +7,8 @@ use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Severity;
 use PDO;
 use PDOException;
+use Stringable;
+use Throwable;
 
 class DatabaseHandler implements HandlerInterface
 {
@@ -17,12 +19,16 @@ class DatabaseHandler implements HandlerInterface
    * @param string $tableName Nome da tabela de erros.
    * @param bool $autoCreate Se true, tenta criar a tabela automaticamente caso não exista.
    * @param array<Severity>|null $notifySeverities Níveis de severidade que persistem no banco (null persiste todas).
+   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       private readonly PDO $pdo,
       private readonly string $tableName = "error_tracker",
       private readonly bool $autoCreate = false,
-      private readonly ?array $notifySeverities = null
+      private readonly ?array $notifySeverities = null,
+      private readonly ?string $userName = null,
+      private $userResolver = null
   ) {}
 
   public function report(ErrorContext $context): void
@@ -72,6 +78,23 @@ class DatabaseHandler implements HandlerInterface
   {
     $payloadJson = json_encode($context->requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
 
+    $userName = $context->userName;
+    if ($userName === null) {
+      if ($this->userResolver !== null) {
+        try {
+          $resolved = ($this->userResolver)();
+          if ($resolved !== null && $resolved !== '') {
+            $userName = (string)$resolved;
+          }
+        } catch (Throwable) {
+          // Absorve exceções do resolver
+        }
+      }
+      if ($userName === null && $this->userName !== null) {
+        $userName = $this->userName;
+      }
+    }
+
     return [
         'hash' => $context->hash,
         'severity' => $context->severity->value,
@@ -82,7 +105,7 @@ class DatabaseHandler implements HandlerInterface
         'line' => $context->line,
         'method' => $context->requestMethod,
         'uri' => substr($context->requestUri, 0, 255),
-        'user_name' => $context->userName !== null ? substr($context->userName, 0, 100) : null,
+        'user_name' => $userName !== null ? substr($userName, 0, 100) : null,
         'trace' => $context->trace,
         'payload' => $payloadJson,
         'created_at' => date('Y-m-d H:i:s'),

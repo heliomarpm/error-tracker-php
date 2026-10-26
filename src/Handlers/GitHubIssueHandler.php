@@ -5,6 +5,8 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Severity;
+use Stringable;
+use Throwable;
 
 class GitHubIssueHandler implements HandlerInterface
 {
@@ -19,6 +21,8 @@ class GitHubIssueHandler implements HandlerInterface
    * @param int $timeoutSeconds Timeout da requisição cURL em segundos.
    * @param bool $deduplicateOpenIssues Se true, busca issue aberta com o mesmo hash e adiciona comentário em vez de duplicar.
    * @param (callable(ErrorContext): string)|null $bodyFormatter Formatador customizado para o corpo da issue em Markdown.
+   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       private readonly string $token,
@@ -27,14 +31,20 @@ class GitHubIssueHandler implements HandlerInterface
       private readonly ?array $notifySeverities = [Severity::CRITICAL, Severity::WARNING],
       private readonly int $timeoutSeconds = 3,
       private readonly bool $deduplicateOpenIssues = true,
-      ?callable $bodyFormatter = null
+      ?callable $bodyFormatter = null,
+      private readonly ?string $userName = null,
+      private $userResolver = null
   ) {
     $this->bodyFormatter = $bodyFormatter;
   }
 
   public function renderTitle(ErrorContext $context): string
   {
-    $title = "[{$this->application}~{$context->severity->name}] " . substr($context->message, 0, 80);
+    $appName = !empty($context->appName) && $context->appName !== 'ErrorTracker'
+        ? $context->appName
+        : $this->application;
+
+    $title = "[{$appName}~{$context->severity->name}] " . substr($context->message, 0, 80);
     if (strlen($context->message) > 80) {
       $title .= '...';
     }
@@ -47,11 +57,35 @@ class GitHubIssueHandler implements HandlerInterface
       return ($this->bodyFormatter)($context);
     }
 
+    $userName = $context->userName;
+    if ($userName === null) {
+      if ($this->userResolver !== null) {
+        try {
+          $resolved = ($this->userResolver)();
+          if ($resolved !== null && $resolved !== '') {
+            $userName = (string)$resolved;
+          }
+        } catch (Throwable) {
+          // Absorve exceções
+        }
+      }
+      if ($userName === null && $this->userName !== null) {
+        $userName = $this->userName;
+      }
+    }
+
     $requestJson = json_encode($context->requestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}';
 
+    $appName = !empty($context->appName) ? $context->appName : $this->application;
+
     $body = "### 🚨 Falha Capturada Automaticamente\n\n";
+    $body .= "**Aplicação:** `{$appName}` | **Ambiente:** `{$context->environment}`\n";
     $body .= "**Mensagem:** `{$context->message}`\n";
-    $body .= "**Arquivo:** `{$context->file}` (Linha: **{$context->line}**)\n\n";
+    $body .= "**Arquivo:** `{$context->file}` (Linha: **{$context->line}**)\n";
+    if ($userName !== null) {
+      $body .= "**Usuário:** `{$userName}`\n";
+    }
+    $body .= "\n";
     $body .= "#### 🔍 Stack Trace\n<details><summary>Clique para expandir</summary>\n\n```php\n{$context->trace}\n```\n</details>\n\n";
     $body .= "#### 📦 Payload e Ambiente (Sanitizado)\n<details><summary>Clique para expandir</summary>\n\n```json\n{$requestJson}\n```\n</details>\n\n";
     $body .= "---\n*ID do Erro: `{$context->hash}` | Reportado via ErrorTracker*";

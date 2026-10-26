@@ -6,6 +6,8 @@ use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
 use HeliomarPM\ErrorTracker\Severity;
+use Stringable;
+use Throwable;
 
 class EmailHandler implements HandlerInterface
 {
@@ -23,6 +25,8 @@ class EmailHandler implements HandlerInterface
    * @param string|null $templateOrPath Caminho do arquivo de template ou string customizada.
    * @param string $subjectTemplate Template do assunto com tags (ex: 🚨 [{{severity}}] {{message}}).
    * @param (callable(ErrorContext): string)|null $formatter Callback customizado para formatação do corpo.
+   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       private readonly string $to,
@@ -31,7 +35,9 @@ class EmailHandler implements HandlerInterface
       private readonly string $format = 'html',
       ?string $templateOrPath = null,
       private readonly string $subjectTemplate = '<!-- IF_EXCEPTION -->🚨 [{{severity}}] Incidente Detectado: {{message}}<!-- /IF_EXCEPTION --><!-- IF_MESSAGE_ONLY -->ℹ️ [{{severity}}] Evento: {{message}}<!-- /IF_MESSAGE_ONLY -->',
-      ?callable $formatter = null
+      ?callable $formatter = null,
+      private readonly ?string $userName = null,
+      private $userResolver = null
   ) {
     $this->formatter = $formatter;
     $this->renderer = new TemplateRenderer();
@@ -83,6 +89,29 @@ class EmailHandler implements HandlerInterface
       return ($this->formatter)($context);
     }
 
-    return $this->renderer->render($this->templatePath, $context);
+    $extraTags = [];
+    $userName = $context->userName;
+    if ($userName === null) {
+      if ($this->userResolver !== null) {
+        try {
+          $resolved = ($this->userResolver)();
+          if ($resolved !== null && $resolved !== '') {
+            $userName = (string)$resolved;
+          }
+        } catch (Throwable) {
+          // Absorve exceções do resolver
+        }
+      }
+      if ($userName === null && $this->userName !== null) {
+        $userName = $this->userName;
+      }
+      if ($userName !== null) {
+        $extraTags['usuario_nome'] = $userName;
+        $extraTags['user'] = $userName;
+        $extraTags['user_name'] = $userName;
+      }
+    }
+
+    return $this->renderer->render($this->templatePath, $context, $extraTags);
   }
 }

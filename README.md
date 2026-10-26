@@ -85,14 +85,74 @@ $tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', true))
         ->addHandler(new EmailHandler('suporte@empresa.com', 'noreply@empresa.com', [Severity::CRITICAL]));
         // Dica: Todos os handlers aceitam 'notifySeverities' (ex: [Severity::CRITICAL, Severity::WARNING])
 
-// 3. Define a Rota de Fuga (Failsafe em falhas críticas)
+// 3. Define parâmetros globais da aplicação (propaga para todos os handlers)
+$tracker->parameters(
+    appName: 'Meu App',
+    environment: 'production',
+    userResolver: fn() => $_SESSION['usuario']['nome'] ?? Auth::user()?->name ?? null
+);
+
+// 4. Define a Rota de Fuga (Failsafe em falhas críticas)
 $tracker->onCritical(function ($context) {
     header("Location: /500.php?ref={$context->hash}");
 });
 
-// 4. Ativa o escudo global!
+// 5. Ativa o escudo global (também aceita parâmetros diretamente como atalho!)
 $tracker->register();
+// Ou direto: $tracker->register(appName: 'Meu App', environment: 'production');
 ```
+
+---
+
+## ⚙️ Parâmetros Globais da Aplicação (`parameters()` e `register()`)
+
+O método `parameters()` centraliza os dados compartilhados do seu ecossistema. Qualquer parâmetro definido aqui é automaticamente injetado em `ErrorContext` e aproveitado por **todos os handlers**:
+
+| Parâmetro | Tipo | Descrição | Onde é aproveitado |
+| :--- | :--- | :--- | :--- |
+| `appName` | `string` | Nome da aplicação ou microsserviço | Títulos no GitHub (`[AppName~CRITICAL]`), templates de e-mail, cards de Slack/Discord e logs |
+| `environment`| `string` | Ambiente (`production`, `staging`, `dev`, etc.) | Tags de alerta, condicionais de template (`<!-- IF_PRODUCTION -->`), webhooks e cards |
+| `serverName` | `?string` | Nome do servidor ou container | Templates de e-mail, logs e payloads analíticos |
+| `userName` | `?string` | Identificador ou nome estático de usuário | Coluna `user_name` do banco, logs, e-mails e cards |
+| `userResolver`| `?callable` | Callback dinâmico chamado no instante do erro | Resolução sob demanda de sessão (`$_SESSION`) ou Auth de frameworks |
+| `extraContext`| `array` | Metadados adicionais da aplicação | Anexado a requisições e visível em todos os payloads e templates |
+
+### 1. Usando Named Arguments (PHP 8)
+```php
+$tracker->parameters(
+    appName: 'Salvar Micro ERP',
+    environment: 'production',
+    serverName: 'cluster-web-01',
+    userResolver: fn() => $_SESSION['usuario']['nome'] ?? Auth::user()?->name ?? null,
+    extraContext: ['tenant_id' => 'empresa_abc']
+);
+```
+
+### 2. Usando Array Associativo (ideal para `.env` ou configs)
+```php
+$tracker->parameters([
+    'app_name' => Env::get('APP_NAME', 'Meu App'),
+    'environment' => Env::get('APP_ENV', 'production'),
+    'user_resolver' => fn() => $_SESSION['usuario']['nome'] ?? null,
+]);
+```
+
+### 3. Atalho direto no `register()`
+Para uma inicialização ainda mais rápida no bootstrap:
+```php
+$tracker->register(
+    appName: 'Salvar Micro ERP',
+    environment: 'production',
+    userResolver: fn() => $_SESSION['usuario']['nome'] ?? null
+);
+```
+
+### 4. Detecção Automática Zero-Config de Usuário
+Mesmo sem configurar resolvers manuais, o rastreador inspeciona automaticamente `$_SESSION` e o contexto da requisição procurando por:
+* Chaves em português e inglês: `usuario`, `user`, `usuario_nome`, `user_name`, `username`, `login`, `auth.user`
+* Arrays associativos com campos `nome`, `name`, `login`, `email`, `id`
+* Objetos / Entidades de usuário com métodos `getName()`, `getNome()`, `getUserName()` ou propriedades públicas (`->nome`, `->name`, `->email`)
+* Instâncias de `Stringable`
 
 ---
 

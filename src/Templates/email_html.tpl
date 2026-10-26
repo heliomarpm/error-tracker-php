@@ -64,8 +64,8 @@
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #0d1117; border: 1px solid #30363d; border-radius: 8px;">
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #21262d; width: 50%;">
-            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Rota / Método</span>
-            <code style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: #38bdf8;">{{request_method}} {{request_uri}}</code>
+            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Aplicação / Ambiente</span>
+            <span style="font-size: 13px; color: #f0f6fc; font-weight: 500;">{{app_name}} <span style="font-size: 11px; color: #a5b4fc; background: rgba(99, 102, 241, 0.2); padding: 2px 6px; border-radius: 4px;">{{environment}}</span></span>
           </td>
           <td style="padding: 12px 16px; border-bottom: 1px solid #21262d; width: 50%;">
             <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Usuário</span>
@@ -73,13 +73,19 @@
           </td>
         </tr>
         <tr>
-          <td style="padding: 12px 16px; width: 50%;">
-            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">PHP / Servidor</span>
-            <span style="font-size: 13px; color: #f0f6fc;">PHP <strong style="color: #ffffff;">{{php_version}}</strong> em {{server_name}}</span>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #21262d; width: 50%;">
+            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Rota / Método</span>
+            <code style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: #38bdf8;">{{request_method}} {{request_uri}}</code>
           </td>
-          <td style="padding: 12px 16px; width: 50%;">
+          <td style="padding: 12px 16px; border-bottom: 1px solid #21262d; width: 50%;">
             <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Pico de Memória</span>
             <span style="font-size: 13px; color: #4ade80; font-weight: 600;">{{memory_usage}}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding: 12px 16px; width: 100%;">
+            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">PHP / Servidor</span>
+            <span style="font-size: 13px; color: #f0f6fc;">PHP <strong style="color: #ffffff;">{{php_version}}</strong> em {{server_name}}</span>
           </td>
         </tr>
       </table>

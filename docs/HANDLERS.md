@@ -28,12 +28,15 @@ $tracker->addHandler($handler);
 
 * `autoCreate = true`: Cria a tabela e índices automaticamente na primeira execução se ainda não existirem.
 * `notifySeverities`: Array com os níveis de severidade aceitos (ex: `[Severity::CRITICAL, Severity::WARNING]`). Se omitido ou `null`, persiste todos os incidentes.
+* `userName`: Nome estático de usuário a persistir caso não esteja presente no contexto ou sessão.
+* `userResolver`: Callback dinâmico `fn(): ?string` para resolver o usuário autenticado em runtime caso o contexto não possua.
 
 ```php
-// Exemplo: persistir apenas avisos e falhas críticas
+// Exemplo: persistir apenas avisos e falhas críticas com resolver dinâmico de usuário
 $handler = new DatabaseHandler(
     pdo: $pdo,
-    notifySeverities: [Severity::CRITICAL, Severity::WARNING]
+    notifySeverities: [Severity::CRITICAL, Severity::WARNING],
+    userResolver: fn() => $_SESSION['usuario']['nome'] ?? null
 );
 ```
 

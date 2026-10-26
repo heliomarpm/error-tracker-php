@@ -141,4 +141,214 @@ final class ErrorTrackerTest extends TestCase
         $this->assertSame($line, $reportedContext->line);
         $this->assertSame('', $reportedContext->trace);
     }
+
+    public function testTracksUserConfiguredViaSetUserName(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->setUserName('admin_global');
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->handleException(new RuntimeException('Erro com user estático'));
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('admin_global', $reportedContext->userName);
+    }
+
+    public function testTracksUserConfiguredViaSetUserResolver(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $currentUser = 'joao_silva';
+        $tracker->setUserResolver(function () use (&$currentUser) {
+            return $currentUser;
+        });
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->handleException(new RuntimeException('Erro com user dinâmico'));
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('joao_silva', $reportedContext->userName);
+
+        // Altera o usuário da aplicação e testa nova resolução
+        $currentUser = 'maria_dev';
+        $tracker->log(LogLevel::ERROR, 'Outro erro com novo usuário');
+        $this->assertSame('maria_dev', $reportedContext->userName);
+    }
+
+    public function testTracksUserConfiguredViaConstructor(): void
+    {
+        $tracker = new ErrorTracker($this->cache, 3600, userName: 'user_from_constructor');
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->handleException(new RuntimeException('Erro construtor'));
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('user_from_constructor', $reportedContext->userName);
+    }
+
+    public function testUserResolverExceptionDoesNotBreakTracking(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->setUserResolver(function () {
+            throw new RuntimeException('Falha no serviço de autenticação');
+        });
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->handleException(new RuntimeException('Erro com resolver defeituoso'));
+
+        $this->assertNotNull($reportedContext);
+        $this->assertNull($reportedContext->userName);
+    }
+
+    public function testExtraContextUserOverridesGlobalTrackerUser(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->setUserName('user_padrao');
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->info('Log com sobrescrita', ['username' => 'usuario_especifico']);
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('usuario_especifico', $reportedContext->userName);
+    }
+
+    public function testConfiguresParametersWithNamedArguments(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->parameters(
+            appName: 'Salvar ERP',
+            environment: 'staging',
+            serverName: 'cluster-node-02',
+            userName: 'tech_lead',
+            extraContext: ['tenant_id' => 'empresa_123']
+        );
+
+        $params = $tracker->getParameters();
+        $this->assertSame('Salvar ERP', $params['appName']);
+        $this->assertSame('staging', $params['environment']);
+        $this->assertSame('cluster-node-02', $params['serverName']);
+        $this->assertSame('tech_lead', $params['userName']);
+        $this->assertSame(['tenant_id' => 'empresa_123'], $params['extraContext']);
+    }
+
+    public function testConfiguresParametersWithAssociativeArray(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->parameters([
+            'app_name' => 'API Gateway',
+            'environment' => 'production',
+            'server_name' => 'aws-ec2-01',
+            'user_name' => 'devops_user',
+            'extra_context' => ['version' => '2.1.0'],
+        ]);
+
+        $params = $tracker->getParameters();
+        $this->assertSame('API Gateway', $params['appName']);
+        $this->assertSame('production', $params['environment']);
+        $this->assertSame('aws-ec2-01', $params['serverName']);
+        $this->assertSame('devops_user', $params['userName']);
+        $this->assertSame(['version' => '2.1.0'], $params['extraContext']);
+    }
+
+    public function testParametersPropagateToErrorContext(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->parameters(
+            appName: 'Meu Sistema',
+            environment: 'development',
+            serverName: 'dev-box',
+            userName: 'marcos',
+            extraContext: ['commit' => 'abcdef']
+        );
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+        $tracker->handleException(new RuntimeException('Teste de parâmetros'));
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('Meu Sistema', $reportedContext->appName);
+        $this->assertSame('development', $reportedContext->environment);
+        $this->assertSame('dev-box', $reportedContext->serverName);
+        $this->assertSame('marcos', $reportedContext->userName);
+        $this->assertSame('abcdef', $reportedContext->requestData['context']['commit'] ?? null);
+    }
+
+    public function testRegisterAcceptsParametersAndSetsUpHandlers(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->register(
+            appName: 'App No Register',
+            environment: 'testing'
+        );
+
+        $this->assertSame('App No Register', $tracker->getAppName());
+        $this->assertSame('testing', $tracker->getEnvironment());
+
+        restore_error_handler();
+        restore_exception_handler();
+    }
 }

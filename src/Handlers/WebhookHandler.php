@@ -7,6 +7,8 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Severity;
+use Stringable;
+use Throwable;
 
 class WebhookHandler implements HandlerInterface
 {
@@ -19,13 +21,17 @@ class WebhookHandler implements HandlerInterface
    * @param string $format Formato do payload: 'slack', 'discord' ou 'generic'.
    * @param int $timeoutSeconds Timeout da requisição em segundos.
    * @param (callable(ErrorContext): array<string, mixed>)|null $payloadFormatter Callback customizado de formatação.
+   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       private readonly string $webhookUrl,
       private readonly ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'generic',
       private readonly int $timeoutSeconds = 3,
-      ?callable $payloadFormatter = null
+      ?callable $payloadFormatter = null,
+      private readonly ?string $userName = null,
+      private $userResolver = null
   ) {
     $this->payloadFormatter = $payloadFormatter;
   }
@@ -57,6 +63,43 @@ class WebhookHandler implements HandlerInterface
       return ($this->payloadFormatter)($context);
     }
 
+    $userName = $context->userName;
+    if ($userName === null) {
+      if ($this->userResolver !== null) {
+        try {
+          $resolved = ($this->userResolver)();
+          if ($resolved !== null && $resolved !== '') {
+            $userName = (string)$resolved;
+          }
+        } catch (Throwable) {
+          // Absorve exceções
+        }
+      }
+      if ($userName === null && $this->userName !== null) {
+        $userName = $this->userName;
+      }
+    }
+
+    $appLabel = $context->appName . ($context->environment !== 'production' ? " [{$context->environment}]" : '');
+
+    $slackFields = [
+        ['title' => 'Aplicação', 'value' => $appLabel, 'short' => true],
+        ['title' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'short' => true],
+        ['title' => 'Hash ID', 'value' => $context->hash, 'short' => true],
+    ];
+    if ($userName !== null) {
+        $slackFields[] = ['title' => 'Usuário', 'value' => $userName, 'short' => true];
+    }
+
+    $discordFields = [
+        ['name' => 'Aplicação', 'value' => $appLabel, 'inline' => true],
+        ['name' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'inline' => true],
+        ['name' => 'Hash ID', 'value' => "`{$context->hash}`", 'inline' => true],
+    ];
+    if ($userName !== null) {
+        $discordFields[] = ['name' => 'Usuário', 'value' => $userName, 'inline' => true];
+    }
+
     return match (strtolower($this->format)) {
       'slack' => [
           'text' => ($context->isException ? '🚨' : 'ℹ️') . " *[{$context->severity->name}] " . ($context->isException ? 'Incidente Detectado' : 'Registro de Evento') . '*',
@@ -69,11 +112,8 @@ class WebhookHandler implements HandlerInterface
                       default => '#777777',
                   },
                   'title' => $context->message,
-                  'fields' => [
-                      ['title' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'short' => true],
-                      ['title' => 'Hash ID', 'value' => $context->hash, 'short' => true],
-                  ],
-                  'footer' => 'HeliomarPM ErrorTracker',
+                  'fields' => $slackFields,
+                  'footer' => "HeliomarPM ErrorTracker | {$context->appName}",
                   'ts' => time(),
               ],
           ],
@@ -90,21 +130,21 @@ class WebhookHandler implements HandlerInterface
                       Severity::INFO => 3447003,
                       default => 7829367,
                   },
-                  'fields' => [
-                      ['name' => 'Arquivo', 'value' => "{$context->file}:{$context->line}", 'inline' => true],
-                      ['name' => 'Hash ID', 'value' => "`{$context->hash}`", 'inline' => true],
-                  ],
-                  'footer' => ['text' => 'HeliomarPM ErrorTracker'],
+                  'fields' => $discordFields,
+                  'footer' => ['text' => "HeliomarPM ErrorTracker | {$context->appName}"],
                   'timestamp' => date('c'),
               ],
           ],
       ],
       default => [
           'hash' => $context->hash,
+          'app_name' => $context->appName,
+          'environment' => $context->environment,
           'severity' => $context->severity->value,
           'message' => $context->message,
           'file' => $context->file,
           'line' => $context->line,
+          'user_name' => $userName,
           'trace' => $context->trace,
           'payload' => $context->requestData,
           'timestamp' => date('Y-m-d H:i:s'),

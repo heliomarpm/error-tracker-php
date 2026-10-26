@@ -155,4 +155,20 @@ final class TemplateRendererTest extends TestCase
         $this->assertStringContainsString('ℹ️ INFO', $renderedHtml);
         $this->assertStringNotContainsString('Rastreamento da Pilha', $renderedHtml);
     }
+
+    public function testRendersAppNameAndEnvironmentWithConditionals(): void
+    {
+        $context = new ErrorContext(
+            new Exception('Erro teste app'),
+            [],
+            Severity::CRITICAL,
+            appName: 'MinhaLoja Virtual',
+            environment: 'production'
+        );
+
+        $template = "[{{app_name}}] [{{environment}}] <!-- IF_PRODUCTION -->PROD_MODE<!-- /IF_PRODUCTION --><!-- IF_DEV -->DEV_MODE<!-- /IF_DEV -->";
+        $rendered = $this->renderer->render($template, $context);
+
+        $this->assertSame('[MinhaLoja Virtual] [production] PROD_MODE', $rendered);
+    }
 }
