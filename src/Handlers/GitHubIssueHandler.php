@@ -171,6 +171,7 @@ final class GitHubIssueHandler implements HandlerInterface
             "Authorization: Bearer {$this->token}",
         ],
         CURLOPT_TIMEOUT => $this->timeoutSeconds,
+        CURLOPT_CONNECTTIMEOUT => min(2, $this->timeoutSeconds),
     ]);
 
     $response = curl_exec($ch);
@@ -202,6 +203,7 @@ final class GitHubIssueHandler implements HandlerInterface
             "Authorization: Bearer {$this->token}",
         ],
         CURLOPT_TIMEOUT => $this->timeoutSeconds,
+        CURLOPT_CONNECTTIMEOUT => min(2, $this->timeoutSeconds),
     ]);
 
     $response = curl_exec($ch);

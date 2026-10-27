@@ -165,6 +165,7 @@ final class WebhookHandler implements HandlerInterface
             'User-Agent: HeliomarPM-ErrorTracker',
         ],
         CURLOPT_TIMEOUT => $this->timeoutSeconds,
+        CURLOPT_CONNECTTIMEOUT => min(2, $this->timeoutSeconds),
     ]);
 
     $response = curl_exec($ch);

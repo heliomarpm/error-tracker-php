@@ -14,6 +14,29 @@ use HeliomarPM\ErrorTracker\ErrorContext;
 final class TemplateRenderer
 {
     /**
+     * Cache estático em memória para conteúdo de arquivos de template.
+     *
+     * @var array<string, string>
+     */
+    private static array $fileCache = [];
+
+    /**
+     * Limpa o cache estático de templates em memória.
+     */
+    public static function clearCache(): void
+    {
+        self::$fileCache = [];
+    }
+
+    /**
+     * Retorna a quantidade de templates em cache no momento.
+     */
+    public static function getCacheCount(): int
+    {
+        return count(self::$fileCache);
+    }
+
+    /**
      * Renderiza um template substituindo tags no formato {{tag}} pelos valores do ErrorContext,
      * suportando também blocos condicionais <!-- IF_COND -->...<!-- /IF_COND -->.
      *
@@ -23,7 +46,7 @@ final class TemplateRenderer
      */
     public function render(string $templateOrPath, ErrorContext $context, array $extraTags = []): string
     {
-        $content = is_file($templateOrPath) ? (file_get_contents($templateOrPath) ?: '') : $templateOrPath;
+        $content = $this->loadTemplateContent($templateOrPath);
 
         $payloadJson = json_encode(
             $context->requestData,
@@ -142,5 +165,19 @@ final class TemplateRenderer
         }
 
         return $content;
+    }
+
+    private function loadTemplateContent(string $templateOrPath): string
+    {
+        if (isset(self::$fileCache[$templateOrPath])) {
+            return self::$fileCache[$templateOrPath];
+        }
+
+        if (is_file($templateOrPath)) {
+            $content = file_get_contents($templateOrPath);
+            return self::$fileCache[$templateOrPath] = ($content !== false ? $content : '');
+        }
+
+        return $templateOrPath;
     }
 }

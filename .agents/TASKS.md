@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 21/25 (84%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** em desenvolvimento | **Progresso:** 22/25 (88%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -12,15 +12,6 @@
 (nenhuma)
 
 ## Backlog
-
-- [ ] **T-022 · P2 · Otimizar performance de I/O em TemplateRenderer e StackTraceFormatter**
-  - Origem: assessment | Dep.: nenhuma
-  - Ref: [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [StackTraceFormatter.php](../src/Formatters/StackTraceFormatter.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php)
-  - DoD:
-    - [ ] Implementar cache estático em memória para conteúdo de arquivos `.tpl` em `TemplateRenderer`
-    - [ ] Pré-computar e armazenar raízes de diretório (`cachedRoots`) em `StackTraceFormatter::normalizePath()`
-    - [ ] Configurar `CURLOPT_CONNECTTIMEOUT => 2` em `WebhookHandler` e `GitHubIssueHandler`
-    - [ ] Validar testes existentes e adicionar teste de cache em `TemplateRendererTest`
 
 - [ ] **T-023 · P2 · Eliminar duplicidade de resolução de usuário nos Handlers via trait**
   - Origem: assessment | Dep.: nenhuma
@@ -48,6 +39,15 @@
     - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
 
 ## Concluídas recentemente
+
+- [x] **T-022 · P2 · Otimizar performance de I/O em TemplateRenderer e StackTraceFormatter** (2026-10-27)
+  - Arquivos: [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [StackTraceFormatter.php](../src/Formatters/StackTraceFormatter.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [TemplateRendererTest.php](../tests/Unit/TemplateRendererTest.php), [StackTraceFormatterTest.php](../tests/Unit/StackTraceFormatterTest.php)
+  - Evidência: testes passaram (72 testes, 240 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Implementar cache estático em memória para conteúdo de arquivos `.tpl` em `TemplateRenderer`
+    - [x] Pré-computar e armazenar raízes de diretório (`cachedRoots`) em `StackTraceFormatter::normalizePath()`
+    - [x] Configurar `CURLOPT_CONNECTTIMEOUT => 2` em `WebhookHandler` e `GitHubIssueHandler`
+    - [x] Validar testes existentes e adicionar teste de cache em `TemplateRendererTest`
 
 - [x] **T-021 · P1 · Adicionar coluna app_name no DatabaseHandler** (2026-10-27)
   - Arquivos: [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [DatabaseHandlerTest.php](../tests/Unit/DatabaseHandlerTest.php)

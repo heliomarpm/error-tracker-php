@@ -14,6 +14,21 @@ use Throwable;
 final class StackTraceFormatter
 {
     /**
+     * Cache estático em memória das raízes de diretório padrão pré-computadas.
+     *
+     * @var array<string>|null
+     */
+    private static ?array $cachedDefaultRoots = null;
+
+    /**
+     * Limpa o cache estático de raízes pré-computadas.
+     */
+    public static function clearCache(): void
+    {
+        self::$cachedDefaultRoots = null;
+    }
+
+    /**
      * Formata o stack trace de forma enxuta e legível, removendo paths absolutos do servidor.
      *
      * @param Throwable $e Exceção ou erro a ser formatado.
@@ -59,22 +74,7 @@ final class StackTraceFormatter
     public static function normalizePath(string $path, ?string $basePath = null): string
     {
         $normalized = str_replace('\\', '/', $path);
-
-        $roots = [];
-        if ($basePath !== null && $basePath !== '') {
-            $roots[] = str_replace('\\', '/', $basePath);
-        }
-        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-            $roots[] = str_replace('\\', '/', (string)$_SERVER['DOCUMENT_ROOT']);
-        }
-        $cwd = getcwd();
-        if ($cwd !== false) {
-            $roots[] = str_replace('\\', '/', $cwd);
-        }
-
-        // Remove duplicatas e ordena do maior para o menor para substituir caminhos mais profundos primeiro
-        $roots = array_values(array_unique(array_filter($roots)));
-        usort($roots, fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+        $roots = self::resolveRoots($basePath);
 
         foreach ($roots as $root) {
             $trimmedRoot = rtrim($root, '/');
@@ -85,5 +85,39 @@ final class StackTraceFormatter
         }
 
         return ltrim($normalized, '/');
+    }
+
+    /**
+     * Resolve e ordena as raízes de diretório com cache para as raízes padrão do ambiente.
+     *
+     * @return array<string>
+     */
+    private static function resolveRoots(?string $basePath = null): array
+    {
+        if (self::$cachedDefaultRoots === null) {
+            $defaultRoots = [];
+            if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+                $defaultRoots[] = str_replace('\\', '/', (string)$_SERVER['DOCUMENT_ROOT']);
+            }
+            $cwd = getcwd();
+            if ($cwd !== false) {
+                $defaultRoots[] = str_replace('\\', '/', $cwd);
+            }
+
+            $defaultRoots = array_values(array_unique(array_filter($defaultRoots)));
+            usort($defaultRoots, fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+            self::$cachedDefaultRoots = $defaultRoots;
+        }
+
+        if ($basePath === null || $basePath === '') {
+            return self::$cachedDefaultRoots;
+        }
+
+        $normalizedBase = str_replace('\\', '/', $basePath);
+        $roots = array_merge([$normalizedBase], self::$cachedDefaultRoots);
+        $roots = array_values(array_unique(array_filter($roots)));
+        usort($roots, fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        return $roots;
     }
 }

@@ -171,4 +171,37 @@ final class TemplateRendererTest extends TestCase
 
         $this->assertSame('[MinhaLoja Virtual] [production] PROD_MODE', $rendered);
     }
+
+    public function testCachesTemplateFileContentInMemory(): void
+    {
+        TemplateRenderer::clearCache();
+        $this->assertSame(0, TemplateRenderer::getCacheCount());
+
+        $tempFile = sys_get_temp_dir() . '/test_cache_' . uniqid() . '.tpl';
+        file_put_contents($tempFile, 'V1: {{message}}');
+
+        $context = new ErrorContext(new Exception('Msg 1'), []);
+
+        // 1ª renderização: carrega do disco e grava em cache
+        $rendered1 = $this->renderer->render($tempFile, $context);
+        $this->assertSame('V1: Msg 1', $rendered1);
+        $this->assertSame(1, TemplateRenderer::getCacheCount());
+
+        // Altera o arquivo no disco
+        file_put_contents($tempFile, 'V2_MODIFICADO: {{message}}');
+
+        // 2ª renderização: deve vir do cache em memória (mantendo V1)
+        $rendered2 = $this->renderer->render($tempFile, $context);
+        $this->assertSame('V1: Msg 1', $rendered2);
+
+        // Limpa cache explicitamente
+        TemplateRenderer::clearCache();
+        $this->assertSame(0, TemplateRenderer::getCacheCount());
+
+        // 3ª renderização após clearCache: agora lê V2 do disco
+        $rendered3 = $this->renderer->render($tempFile, $context);
+        $this->assertSame('V2_MODIFICADO: Msg 1', $rendered3);
+
+        @unlink($tempFile);
+    }
 }

@@ -76,6 +76,24 @@ final class StackTraceFormatterTest extends TestCase
         $this->assertStringNotContainsString('createNestedException()', $context->compactTrace);
     }
 
+    public function testNormalizesPathWithCachedRoots(): void
+    {
+        StackTraceFormatter::clearCache();
+
+        $cwd = getcwd();
+        if ($cwd !== false) {
+            $path = $cwd . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'ErrorTracker.php';
+            $normalized = StackTraceFormatter::normalizePath($path);
+            $this->assertSame('src/ErrorTracker.php', $normalized);
+
+            // Segunda chamada reutiliza as raízes cacheadas
+            $normalized2 = StackTraceFormatter::normalizePath($path);
+            $this->assertSame('src/ErrorTracker.php', $normalized2);
+        }
+
+        StackTraceFormatter::clearCache();
+    }
+
     private function createNestedException(): Exception
     {
         return new Exception('Falha simulada em teste');
