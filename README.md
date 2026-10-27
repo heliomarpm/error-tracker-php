@@ -294,7 +294,7 @@ use Psr\Log\LogLevel;
 
 // 1. Logs de Negócio do Dia a Dia (Sem ruído de exceção ou stack trace sintético)
 $tracker->info("Tentativa de login com senha inválida", [
-    'username' => 'carlos.dev',
+    'username' => 'heliomarpm.dev',
     'ip'       => '192.168.1.100',
     'tentativa' => 3,
 ]);

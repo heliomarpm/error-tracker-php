@@ -150,6 +150,12 @@ try {
     if ($action === 'test_flood') {
         // Simulação Anti-Flood: 50 disparos simultâneos
         $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 60);
+        $tracker->parameters(
+            appName: 'ErrorTracker Demo',
+            environment: 'sandbox',
+            serverName: 'demo-cloud-node-01',
+            userName: 'stress_tester'
+        );
         $dispatchCount = 0;
         $counterHandler = new class (function () use (&$dispatchCount) {
             $dispatchCount++;
@@ -191,6 +197,12 @@ try {
 
     // Ações de simulação de erro e sanitização
     $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 0);
+    $tracker->parameters(
+        appName: 'ErrorTracker Demo',
+        environment: 'sandbox',
+        serverName: 'demo-cloud-node-01',
+        userName: !empty($input['username']) ? (string)$input['username'] : 'heliomarpm.dev'
+    );
     $tracker->addHandler($captureHandler);
 
     if ($action === 'sanitization') {

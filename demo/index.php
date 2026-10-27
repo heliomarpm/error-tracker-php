@@ -1807,6 +1807,9 @@
             <button class="docs-tab-btn active" onclick="switchDocTab('bootstrap', this)">
               <span>⚡ Bootstrap Global</span>
             </button>
+            <button class="docs-tab-btn" onclick="switchDocTab('parameters', this)">
+              <span>⚙️ Parâmetros Globais</span>
+            </button>
             <button class="docs-tab-btn" onclick="switchDocTab('github', this)">
               <span>🐙 GitHub Issues</span>
             </button>
@@ -1847,18 +1850,73 @@ require_once __DIR__ . '/vendor/autoload.php';
 $cache = new FileCache(__DIR__ . '/storage/cache/errors');
 $tracker = new ErrorTracker($cache, 3600);
 
-// 2. Registra os canais de alerta desejados
+// 2. Define parâmetros globais contextuais (Aplicação, Ambiente, Resolução de Usuário)
+$tracker->parameters(
+    appName: 'MeuERP',
+    environment: 'production',
+    serverName: gethostname(),
+    userResolver: fn() => Auth::user()?->nome ?? $_SESSION['usuario']['nome'] ?? null,
+);
+
+// 3. Registra os canais de alerta desejados
 $tracker->addHandler(new FilelogHandler(__DIR__ . '/storage/logs'))
         ->addHandler(new EmailHandler('devops@empresa.com', notifySeverities: [Severity::CRITICAL]));
 
-// 3. Rota de Fuga amigável em incidentes críticos (Failsafe)
+// 4. Rota de Fuga amigável em incidentes críticos (Failsafe)
 $tracker->onCritical(function ($context) {
     header("Location: /500.php?ref={$context->hash}");
     exit;
 });
 
-// 4. Ativa interceptadores globais de Exceptions, Errors e Fatals
-$tracker->register();</pre>
+// 5. Ativa interceptadores globais de Exceptions, Errors e Fatals
+$tracker->register();
+
+// --- OU REGISTRO RÁPIDO EM UMA ÚNICA LINHA ---
+// ErrorTracker::register(
+//     handlers: [new FilelogHandler(__DIR__ . '/storage/logs')],
+//     appName: 'MeuERP',
+//     environment: 'production',
+//     userResolver: fn() => Auth::user()?->nome
+// );</pre>
+            </div>
+          </div>
+
+          <!-- Snippet: Parâmetros Globais -->
+          <div id="doc-parameters" class="docs-pane">
+            <div class="snippet-box">
+              <div class="snippet-header">
+                <span>parameters.php (Parâmetros Globais e Contexto Operacional)</span>
+                <button class="btn-action-sm" onclick="copySnippet('snippetParameters')">📋 Copiar</button>
+              </div>
+              <pre id="snippetParameters" class="snippet-code">&lt;?php
+
+use HeliomarPM\ErrorTracker\ErrorTracker;
+
+// FORMA 1: Argumentos nomeados do PHP 8.1+ (Fluente)
+$tracker->parameters(
+    appName: 'PDV Hub Pro',
+    environment: 'production',
+    serverName: 'node-sp-01',
+    userResolver: fn() => Auth::user()?->nome ?? $_SESSION['usuario']['nome'] ?? null,
+    extraContext: ['versao_app' => '3.4.1', 'tenant_id' => 1042]
+);
+
+// FORMA 2: Array associativo (Ideal para ler direto do .env / config.php)
+$tracker->parameters([
+    'app_name'      => $_ENV['APP_NAME'] ?? 'MeuApp',
+    'environment'   => $_ENV['APP_ENV'] ?? 'production',
+    'server_name'   => gethostname(),
+    'user_name'     => $_SESSION['auth_user'] ?? null,
+    'extra_context' => ['regiao' => 'sa-east-1']
+]);
+
+// FORMA 3: Passagem direta no método register()
+ErrorTracker::register(
+    handlers: [$dbHandler, $slackHandler, $githubHandler],
+    appName: 'Checkout API',
+    environment: 'production',
+    userResolver: fn() => $_SESSION['usuario']['email'] ?? null
+);</pre>
             </div>
           </div>
 
@@ -1979,7 +2037,7 @@ $tracker->addHandler($filelog)->addHandler($email);</pre>
               </div>
               <pre id="snippetPsr3" class="snippet-code">// 1. Log informativo de negócio (Sem ruído de exceção ou stack trace fake)
 $tracker->info("Tentativa de login com senha inválida", [
-    'username' => 'carlos.dev',
+    'username' => 'heliomarpm.dev',
     'ip'       => '192.168.1.100',
     'tentativa' => 3
 ]);
