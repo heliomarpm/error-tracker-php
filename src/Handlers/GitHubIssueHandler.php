@@ -7,12 +7,13 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
+use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
-use Throwable;
 
 final class GitHubIssueHandler implements HandlerInterface
 {
+  use ResolvesUserTrait;
   private TemplateRenderer $renderer;
   private string $bodyTemplatePath;
   private string $commentTemplatePath;
@@ -126,26 +127,11 @@ final class GitHubIssueHandler implements HandlerInterface
   private function resolveExtraTags(ErrorContext $context): array
   {
     $extraTags = [];
-    $userName = $context->userName;
-    if ($userName === null) {
-      if ($this->userResolver !== null) {
-        try {
-          $resolved = ($this->userResolver)();
-          if ($resolved !== null && $resolved !== '') {
-            $userName = (string)$resolved;
-          }
-        } catch (Throwable) {
-          // Absorve exceções
-        }
-      }
-      if ($userName === null && $this->userName !== null) {
-        $userName = $this->userName;
-      }
-      if ($userName !== null) {
-        $extraTags['usuario_nome'] = $userName;
-        $extraTags['user'] = $userName;
-        $extraTags['user_name'] = $userName;
-      }
+    $userName = $this->resolveUser($context);
+    if ($userName !== null) {
+      $extraTags['usuario_nome'] = $userName;
+      $extraTags['user'] = $userName;
+      $extraTags['user_name'] = $userName;
     }
 
     $appName = !empty($context->appName) && $context->appName !== 'ErrorTracker'

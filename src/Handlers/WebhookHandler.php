@@ -6,12 +6,13 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
-use Throwable;
 
 final class WebhookHandler implements HandlerInterface
 {
+  use ResolvesUserTrait;
   /** @var (callable(ErrorContext): array<string, mixed>)|null */
   private $payloadFormatter = null;
 
@@ -63,22 +64,7 @@ final class WebhookHandler implements HandlerInterface
       return ($this->payloadFormatter)($context);
     }
 
-    $userName = $context->userName;
-    if ($userName === null) {
-      if ($this->userResolver !== null) {
-        try {
-          $resolved = ($this->userResolver)();
-          if ($resolved !== null && $resolved !== '') {
-            $userName = (string)$resolved;
-          }
-        } catch (Throwable) {
-          // Absorve exceções
-        }
-      }
-      if ($userName === null && $this->userName !== null) {
-        $userName = $this->userName;
-      }
-    }
+    $userName = $this->resolveUser($context);
 
     $appLabel = $context->appName . ($context->environment !== 'production' ? " [{$context->environment}]" : '');
 

@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 22/25 (88%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** em desenvolvimento | **Progresso:** 23/25 (92%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -12,14 +12,6 @@
 (nenhuma)
 
 ## Backlog
-
-- [ ] **T-023 · P2 · Eliminar duplicidade de resolução de usuário nos Handlers via trait**
-  - Origem: assessment | Dep.: nenhuma
-  - Ref: [Handlers/](../src/Handlers/), [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php)
-  - DoD:
-    - [ ] Criar trait `ResolvesUserTrait` com método unificado `resolveUser(ErrorContext $context): ?string`
-    - [ ] Substituir o bloco duplicado de resolução de usuário nos 5 handlers (`DatabaseHandler`, `FilelogHandler`, `EmailHandler`, `WebhookHandler`, `GitHubIssueHandler`)
-    - [ ] Garantir 100% de compatibilidade e aprovação de todos os testes unitários
 
 - [ ] **T-024 · P2 · Reforçar robustez e customização do DataSanitizer e payload de requisição**
   - Origem: assessment | Dep.: nenhuma
@@ -39,6 +31,14 @@
     - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
 
 ## Concluídas recentemente
+
+- [x] **T-023 · P2 · Eliminar duplicidade de resolução de usuário nos Handlers via trait** (2026-10-27)
+  - Arquivos: [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php), [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [WebhookHandlerTest.php](../tests/Unit/WebhookHandlerTest.php)
+  - Evidência: testes passaram (73 testes, 242 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Criar trait `ResolvesUserTrait` com método unificado `resolveUser(ErrorContext $context): ?string`
+    - [x] Substituir o bloco duplicado de resolução de usuário nos 5 handlers (`DatabaseHandler`, `FilelogHandler`, `EmailHandler`, `WebhookHandler`, `GitHubIssueHandler`)
+    - [x] Garantir 100% de compatibilidade e aprovação de todos os testes unitários
 
 - [x] **T-022 · P2 · Otimizar performance de I/O em TemplateRenderer e StackTraceFormatter** (2026-10-27)
   - Arquivos: [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [StackTraceFormatter.php](../src/Formatters/StackTraceFormatter.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [TemplateRendererTest.php](../tests/Unit/TemplateRendererTest.php), [StackTraceFormatterTest.php](../tests/Unit/StackTraceFormatterTest.php)

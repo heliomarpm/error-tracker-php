@@ -62,6 +62,30 @@ class WebhookHandlerTest extends TestCase
         // Não deve tentar disparar cURL nem lançar exceção
         $handler->report($context);
     }
+
+    public function testResolvesUserFallbackInWebhookPayload(): void
+    {
+        $handler = new WebhookHandler(
+            'https://hooks.slack.com/services/mock',
+            format: 'slack',
+            userResolver: fn() => 'usuario_webhook_dyn'
+        );
+        $context = $this->createContext('Erro com usuario fallback');
+        $payload = $handler->buildPayload($context);
+
+        $fields = $payload['attachments'][0]['fields'] ?? [];
+        $userField = null;
+        foreach ($fields as $field) {
+            if (($field['title'] ?? '') === 'Usuário') {
+                $userField = $field;
+                break;
+            }
+        }
+
+        $this->assertNotNull($userField);
+        $this->assertSame('usuario_webhook_dyn', $userField['value']);
+    }
+
     private function createContext(string $message = 'Falha no pagamento', Severity $severity = Severity::CRITICAL): ErrorContext
     {
         return new ErrorContext(

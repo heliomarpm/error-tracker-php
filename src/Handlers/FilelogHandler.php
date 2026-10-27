@@ -7,12 +7,13 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
+use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
-use Throwable;
 
 final class FilelogHandler implements HandlerInterface
 {
+  use ResolvesUserTrait;
   private string $logDirectory;
   private string $templatePath;
   private TemplateRenderer $renderer;
@@ -72,26 +73,11 @@ final class FilelogHandler implements HandlerInterface
     }
 
     $extraTags = [];
-    $userName = $context->userName;
-    if ($userName === null) {
-      if ($this->userResolver !== null) {
-        try {
-          $resolved = ($this->userResolver)();
-          if ($resolved !== null && $resolved !== '') {
-            $userName = (string)$resolved;
-          }
-        } catch (Throwable) {
-          // Absorve exceções do resolver
-        }
-      }
-      if ($userName === null && $this->userName !== null) {
-        $userName = $this->userName;
-      }
-      if ($userName !== null) {
-        $extraTags['usuario_nome'] = $userName;
-        $extraTags['user'] = $userName;
-        $extraTags['user_name'] = $userName;
-      }
+    $userName = $this->resolveUser($context);
+    if ($userName !== null) {
+      $extraTags['usuario_nome'] = $userName;
+      $extraTags['user'] = $userName;
+      $extraTags['user_name'] = $userName;
     }
 
     return $this->renderer->render($this->templatePath, $context, $extraTags);

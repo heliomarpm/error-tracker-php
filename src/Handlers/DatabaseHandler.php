@@ -6,14 +6,16 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
 use PDO;
 use PDOException;
 use Stringable;
-use Throwable;
 
 final class DatabaseHandler implements HandlerInterface
 {
+  use ResolvesUserTrait;
+
   private bool $tableChecked = false;
 
   /**
@@ -81,22 +83,7 @@ final class DatabaseHandler implements HandlerInterface
   {
     $payloadJson = json_encode($context->requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
 
-    $userName = $context->userName;
-    if ($userName === null) {
-      if ($this->userResolver !== null) {
-        try {
-          $resolved = ($this->userResolver)();
-          if ($resolved !== null && $resolved !== '') {
-            $userName = (string)$resolved;
-          }
-        } catch (Throwable) {
-          // Absorve exceções do resolver
-        }
-      }
-      if ($userName === null && $this->userName !== null) {
-        $userName = $this->userName;
-      }
-    }
+    $userName = $this->resolveUser($context);
 
     return [
         'app_name' => substr($context->appName, 0, 100),
