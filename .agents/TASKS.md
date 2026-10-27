@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 24/25 (96%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** concluído | **Progresso:** 25/25 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -13,15 +13,17 @@
 
 ## Backlog
 
-- [ ] **T-025 · P3 · Adicionar favicon na aplicação demo**
-  - Origem: manual | Dep.: nenhuma
-  - Ref: [index.php](../demo/index.php), [500.php](../demo/500.php), [router.php](../demo/router.php)
-  - DoD:
-    - [ ] Criar ícone favicon SVG moderno e alinhado à identidade visual do ErrorTracker em `demo/favicon.svg`
-    - [ ] Adicionar tag `<link rel="icon" type="image/svg+xml" href="/favicon.svg">` no `<head>` de `demo/index.php` e `demo/500.php`
-    - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
+(nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-025 · P3 · Adicionar favicon na aplicação demo** (2026-10-27)
+  - Arquivos: [favicon.svg](../demo/favicon.svg), [index.php](../demo/index.php), [500.php](../demo/500.php), [router.php](../demo/router.php)
+  - Evidência: favicon SVG renderizado, integrado em `index.php` e `500.php`, fallback implementado em `router.php`, testes passaram (79 testes, 265 asserções), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Criar ícone favicon SVG moderno e alinhado à identidade visual do ErrorTracker em `demo/favicon.svg`
+    - [x] Adicionar tag `<link rel="icon" type="image/svg+xml" href="./favicon.svg">` no `<head>` de `demo/index.php` e `demo/500.php`
+    - [x] Validar carregamento do favicon e fallback de `/favicon.ico` sem erros 404 no servidor embutido
 
 - [x] **T-024 · P2 · Reforçar robustez e customização do DataSanitizer e payload de requisição** (2026-10-27)
   - Arquivos: [DataSanitizer.php](../src/DataSanitizer.php), [ErrorTracker.php](../src/ErrorTracker.php), [DataSanitizerTest.php](../tests/Unit/DataSanitizerTest.php), [ErrorTrackerTest.php](../tests/Unit/ErrorTrackerTest.php)

@@ -7,6 +7,7 @@
   <title>ErrorTracker — Sandbox Interativo & Console de Engenharia</title>
   <meta name="description"
     content="Sandbox interativo para desenvolvedores: teste interceptação de exceções, anti-flood throttle via cache PSR-16, sanitização LGPD e despacho para múltiplos handlers.">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="shieldBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D1527"/>
+      <stop offset="100%" stop-color="#070A10"/>
+    </linearGradient>
+    <linearGradient id="cyanViolet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="100%" stop-color="#8A2BE2"/>
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="55%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#F85149"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#00F2FE" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background Shield -->
+  <path d="M32 4 L54 13 V31 C54 44.5 44.5 55 32 60 C19.5 55 10 44.5 10 31 V13 Z"
+        fill="url(#shieldBg)" stroke="url(#cyanViolet)" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Inner Shield Contour -->
+  <path d="M32 9 L49 16.5 V30 C49 41.5 41.5 50.5 32 55 C22.5 50.5 15 41.5 15 30 V16.5 Z"
+        fill="#070A12" fill-opacity="0.6" stroke="rgba(0, 242, 254, 0.25)" stroke-width="1.5"/>
+
+  <!-- Pulse / Monitor Wave / Error Intercept Symbol -->
+  <path d="M19 33 H25 L28 24 L33 42 L37 28 L40 33 H45"
+        stroke="url(#pulseGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- Alert Node Dots -->
+  <circle cx="33" cy="42" r="2.2" fill="#F85149"/>
+  <circle cx="28" cy="24" r="1.8" fill="#00F2FE"/>
+</svg>

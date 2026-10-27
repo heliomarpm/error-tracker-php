@@ -16,11 +16,18 @@ if ($uri === '/500' || $uri === '/500.php') {
     return;
 }
 
-// 3. Arquivos estáticos físicos (ex: logo.png, css, js)
+// 3. Fallback para requisições de /favicon.ico apontando para favicon.svg
+if ($uri === '/favicon.ico' && !file_exists(__DIR__ . '/favicon.ico') && file_exists(__DIR__ . '/favicon.svg')) {
+    header('Content-Type: image/svg+xml');
+    readfile(__DIR__ . '/favicon.svg');
+    return;
+}
+
+// 4. Arquivos estáticos físicos (ex: logo.png, favicon.svg, css, js)
 $filePath = __DIR__ . $uri;
 if ($uri !== '/' && file_exists($filePath) && !is_dir($filePath)) {
     return false;
 }
 
-// 4. Default: página inicial index.php
+// 5. Default: página inicial index.php
 require __DIR__ . '/index.php';
