@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker\Cache;
 
 use DateInterval;
@@ -7,8 +9,9 @@ use DateTime;
 use Psr\SimpleCache\CacheInterface;
 
 /**
- * Evita que o mesmo erro (arquivo+linha+mensagem) dispare handlers
- * repetidamente dentro de uma janela de tempo.
+ * Implementação padrão de cache PSR-16 em disco para anti-flood do ErrorTracker.
+ *
+ * @internal Esta implementação é de uso padrão interno; para customizações, forneça uma instância externa de CacheInterface.
  */
 final class FileCache implements CacheInterface
 {

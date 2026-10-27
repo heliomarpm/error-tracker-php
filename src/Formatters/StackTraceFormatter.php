@@ -6,7 +6,12 @@ namespace HeliomarPM\ErrorTracker\Formatters;
 
 use Throwable;
 
-class StackTraceFormatter
+/**
+ * Formatador auxiliar de stack traces e normalização de caminhos.
+ *
+ * @internal Esta classe é de uso exclusivo interno da biblioteca e pode sofrer alterações sem aviso prévio.
+ */
+final class StackTraceFormatter
 {
     /**
      * Formata o stack trace de forma enxuta e legível, removendo paths absolutos do servidor.

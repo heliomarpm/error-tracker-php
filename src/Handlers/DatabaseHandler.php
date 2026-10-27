@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
@@ -10,7 +12,7 @@ use PDOException;
 use Stringable;
 use Throwable;
 
-class DatabaseHandler implements HandlerInterface
+final class DatabaseHandler implements HandlerInterface
 {
   private bool $tableChecked = false;
 

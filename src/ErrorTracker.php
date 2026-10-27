@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker;
 
 use ErrorException;
@@ -11,7 +13,7 @@ use Psr\SimpleCache\CacheInterface;
 use Stringable;
 use Throwable;
 
-class ErrorTracker implements LoggerInterface
+final class ErrorTracker implements LoggerInterface
 {
   use LoggerTrait;
 
@@ -291,6 +293,8 @@ class ErrorTracker implements LoggerInterface
 
   /**
    * Trata exceções não capturadas. Todas são consideradas falhas críticas.
+   *
+   * @internal Callback registrado no set_exception_handler do PHP. Não deve ser invocado diretamente pelo utilizador.
    */
   public function handleException(Throwable $exception): void
   {
@@ -299,6 +303,8 @@ class ErrorTracker implements LoggerInterface
 
   /**
    * Trata erros nativos do PHP e traduz o nível para nossa enumeração de Severidade.
+   *
+   * @internal Callback registrado no set_error_handler do PHP. Não deve ser invocado diretamente pelo utilizador.
    */
   public function handleError(int $level, string $message, string $file = "", int $line = 0): bool
   {
@@ -321,6 +327,8 @@ class ErrorTracker implements LoggerInterface
 
   /**
    * Captura erros que quebram a compilação ou estouram limites (Memory Limit, Syntax Error).
+   *
+   * @internal Callback registrado no register_shutdown_function do PHP. Não deve ser invocado diretamente pelo utilizador.
    */
   public function handleFatalError(): void
   {

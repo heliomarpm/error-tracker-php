@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
@@ -9,7 +11,7 @@ use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
 use Throwable;
 
-class EmailHandler implements HandlerInterface
+final class EmailHandler implements HandlerInterface
 {
   private TemplateRenderer $renderer;
   private string $templatePath;

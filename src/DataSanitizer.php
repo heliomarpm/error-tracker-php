@@ -1,8 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker;
 
-class DataSanitizer
+/**
+ * Sanitizador de dados sensíveis para conformidade com LGPD/GDPR.
+ *
+ * @internal Esta classe é de uso exclusivo interno do ErrorTracker e pode sofrer alterações sem aviso prévio.
+ */
+final class DataSanitizer
 {
     // Chaves que sofrem "Blackout" total
     private array $fullyMaskedKeys = [

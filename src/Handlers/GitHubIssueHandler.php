@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
@@ -8,7 +10,7 @@ use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
 use Throwable;
 
-class GitHubIssueHandler implements HandlerInterface
+final class GitHubIssueHandler implements HandlerInterface
 {
   /** @var (callable(ErrorContext): string)|null */
   private $bodyFormatter = null;

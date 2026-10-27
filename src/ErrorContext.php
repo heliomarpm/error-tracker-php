@@ -8,7 +8,7 @@ use HeliomarPM\ErrorTracker\Formatters\StackTraceFormatter;
 use Stringable;
 use Throwable;
 
-class ErrorContext
+final class ErrorContext
 {
     public readonly Severity $severity;
     public readonly string $message;

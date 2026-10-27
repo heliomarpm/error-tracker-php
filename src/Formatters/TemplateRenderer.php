@@ -6,7 +6,12 @@ namespace HeliomarPM\ErrorTracker\Formatters;
 
 use HeliomarPM\ErrorTracker\ErrorContext;
 
-class TemplateRenderer
+/**
+ * Motor interno de renderização de templates baseados em tags e condicionais.
+ *
+ * @internal Esta classe é de uso exclusivo interno da biblioteca e pode sofrer alterações sem aviso prévio.
+ */
+final class TemplateRenderer
 {
     /**
      * Renderiza um template substituindo tags no formato {{tag}} pelos valores do ErrorContext,

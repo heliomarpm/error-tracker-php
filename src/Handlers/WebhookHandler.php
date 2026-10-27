@@ -10,7 +10,7 @@ use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
 use Throwable;
 
-class WebhookHandler implements HandlerInterface
+final class WebhookHandler implements HandlerInterface
 {
   /** @var (callable(ErrorContext): array<string, mixed>)|null */
   private $payloadFormatter = null;
