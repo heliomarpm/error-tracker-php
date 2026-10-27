@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 18/19 (94%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-26
+> **Status:** concluído | **Progresso:** 19/19 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-26
 
 ## Em progresso
 
@@ -13,20 +13,20 @@
 
 ## Backlog
 
-### Média Prioridade
-
-- [ ] **T-019 · P2 · Externalizar templates do GitHubIssueHandler em arquivos .tpl**
-  - Origem: manual | Dep.: nenhuma
-  - Ref: [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [src/Templates/](../src/Templates/)
-  - DoD:
-    - [ ] Criar templates padrão em `src/Templates/github_issue_body.tpl` e `src/Templates/github_issue_comment.tpl`
-    - [ ] Integrar `TemplateRenderer` no `GitHubIssueHandler` para renderização do corpo e comentário de reincidência
-    - [ ] Permitir customização via caminho de arquivo ou string no construtor (`$bodyTemplateOrPath`, `$commentTemplateOrPath`)
-    - [ ] Preservar retrocompatibilidade com `$bodyFormatter` (closure com prioridade sobre o template)
-    - [ ] Adicionar/atualizar testes unitários cobrindo renderização padrão e templates customizados
-    - [ ] Atualizar documentação em `docs/TEMPLATES.md` e `docs/HANDLERS.md` com as novas tags e exemplos
+(nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-019 · P2 · Externalizar templates do GitHubIssueHandler em arquivos .tpl** (2026-10-26)
+  - Arquivos: [github_issue_body.tpl](../src/Templates/github_issue_body.tpl), [github_issue_comment.tpl](../src/Templates/github_issue_comment.tpl), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [GitHubIssueHandlerTest.php](../tests/Unit/GitHubIssueHandlerTest.php), [TEMPLATES.md](../docs/TEMPLATES.md), [HANDLERS.md](../docs/HANDLERS.md)
+  - Evidência: testes passaram (64 testes, 220 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Criar templates padrão em `src/Templates/github_issue_body.tpl` e `src/Templates/github_issue_comment.tpl`
+    - [x] Integrar `TemplateRenderer` no `GitHubIssueHandler` para renderização do corpo e comentário de reincidência
+    - [x] Permitir customização via caminho de arquivo ou string no construtor (`$bodyTemplateOrPath`, `$commentTemplateOrPath`)
+    - [x] Preservar retrocompatibilidade com `$bodyFormatter` (closure com prioridade sobre o template)
+    - [x] Adicionar/atualizar testes unitários cobrindo renderização padrão e templates customizados
+    - [x] Atualizar documentação em `docs/TEMPLATES.md` e `docs/HANDLERS.md` com as novas tags e exemplos
 
 - [x] **T-018 · P1 · Redesenhar interface da demo em layout workbench com navegação por abas**
   - Origem: manual | Dep.: nenhuma

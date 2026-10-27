@@ -119,12 +119,15 @@ final class TemplateRenderer
                     $isTruthy = match ($cond) {
                         'ORIGIN' => (!empty($tags['error_file']) || !empty($tags['file'])) && (!empty($tags['error_line']) || !empty($tags['line'])),
                         'PREVIOUS' => !empty($tags['previous_class']) || !empty($tags['previous_message']),
-                        'USER', 'USUARIO', 'USUARIO_NOME' => $context->userName !== null && $context->userName !== '',
+                        'USER', 'USUARIO', 'USUARIO_NOME' => ($context->userName !== null && $context->userName !== '')
+                            || (!empty($tags['user']) && $tags['user'] !== 'Anônimo / Não autenticado')
+                            || (!empty($tags['usuario_nome']) && $tags['usuario_nome'] !== 'Anônimo / Não autenticado')
+                            || (!empty($tags['user_name']) && $tags['user_name'] !== 'Anônimo / Não autenticado'),
                         'EXCEPTION', 'IS_EXCEPTION' => $context->isException,
                         'NOT_EXCEPTION', 'MESSAGE_ONLY', 'IS_MESSAGE' => !$context->isException,
                         'TRACE', 'STACK_TRACE', 'HAS_TRACE' => $context->isException && !empty($tags['trace']),
-                        'APP_NAME', 'APPLICATION' => !empty($context->appName),
-                        'ENVIRONMENT', 'AMBIENTE', 'ENV' => !empty($context->environment),
+                        'APP_NAME', 'APPLICATION' => !empty($tags['app_name']) || !empty($context->appName),
+                        'ENVIRONMENT', 'AMBIENTE', 'ENV' => !empty($tags['environment']) || !empty($context->environment),
                         'PRODUCTION', 'PROD', 'ENV_PROD' => in_array(strtolower($context->environment), ['production', 'prod'], true),
                         'STAGING', 'ENV_STAGING' => in_array(strtolower($context->environment), ['staging', 'stage'], true),
                         'DEVELOPMENT', 'DEV', 'ENV_DEV', 'LOCAL' => in_array(strtolower($context->environment), ['development', 'dev', 'local'], true),

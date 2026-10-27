@@ -138,7 +138,10 @@ $handler = new GitHubIssueHandler(
     repository: 'heliomarpm/meu-projeto',
     application: 'MeuApp Produção',
     notifySeverities: [Severity::CRITICAL, Severity::WARNING], // padrão: [CRITICAL, WARNING]
-    timeoutSeconds: 3
+    timeoutSeconds: 3,
+    deduplicateOpenIssues: true, // Adiciona comentário na issue aberta em vez de duplicar
+    bodyTemplateOrPath: __DIR__ . '/templates/custom_issue_body.tpl', // Opcional (padrão: github_issue_body.tpl)
+    commentTemplateOrPath: __DIR__ . '/templates/custom_issue_comment.tpl' // Opcional (padrão: github_issue_comment.tpl)
 );
 
 $tracker->addHandler($handler);

@@ -57,7 +57,7 @@
     "test:coverage:html": "php -d xdebug.mode=coverage vendor/bin/phpunit --configuration phpunit.xml --coverage-html coverage/",
     "bench": "php ./benchmarks/run.php",
     "perform": "vendor/bin/phpbench run --report=aggregate",
-    "start": "php -S localhost:8000 -t ./demo demo/router.php",
+    "start": "php -S localhost:8001 -t ./demo demo/router.php",
     "check": [
       "@format",
       "@lint",

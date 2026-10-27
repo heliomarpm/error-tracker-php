@@ -6,12 +6,17 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
+use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
 use HeliomarPM\ErrorTracker\Severity;
 use Stringable;
 use Throwable;
 
 final class GitHubIssueHandler implements HandlerInterface
 {
+  private TemplateRenderer $renderer;
+  private string $bodyTemplatePath;
+  private string $commentTemplatePath;
+
   /** @var (callable(ErrorContext): string)|null */
   private $bodyFormatter = null;
 
@@ -25,6 +30,8 @@ final class GitHubIssueHandler implements HandlerInterface
    * @param (callable(ErrorContext): string)|null $bodyFormatter Formatador customizado para o corpo da issue em Markdown.
    * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
    * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
+   * @param string|null $bodyTemplateOrPath Caminho do arquivo ou string de template customizado para o corpo da issue.
+   * @param string|null $commentTemplateOrPath Caminho do arquivo ou string de template customizado para comentários de reincidência.
    */
   public function __construct(
       private readonly string $token,
@@ -35,9 +42,14 @@ final class GitHubIssueHandler implements HandlerInterface
       private readonly bool $deduplicateOpenIssues = true,
       ?callable $bodyFormatter = null,
       private readonly ?string $userName = null,
-      private $userResolver = null
+      private $userResolver = null,
+      ?string $bodyTemplateOrPath = null,
+      ?string $commentTemplateOrPath = null
   ) {
     $this->bodyFormatter = $bodyFormatter;
+    $this->renderer = new TemplateRenderer();
+    $this->bodyTemplatePath = $bodyTemplateOrPath ?? dirname(__DIR__) . '/Templates/github_issue_body.tpl';
+    $this->commentTemplatePath = $commentTemplateOrPath ?? dirname(__DIR__) . '/Templates/github_issue_comment.tpl';
   }
 
   public function renderTitle(ErrorContext $context): string
@@ -59,40 +71,16 @@ final class GitHubIssueHandler implements HandlerInterface
       return ($this->bodyFormatter)($context);
     }
 
-    $userName = $context->userName;
-    if ($userName === null) {
-      if ($this->userResolver !== null) {
-        try {
-          $resolved = ($this->userResolver)();
-          if ($resolved !== null && $resolved !== '') {
-            $userName = (string)$resolved;
-          }
-        } catch (Throwable) {
-          // Absorve exceções
-        }
-      }
-      if ($userName === null && $this->userName !== null) {
-        $userName = $this->userName;
-      }
-    }
+    $extraTags = $this->resolveExtraTags($context);
 
-    $requestJson = json_encode($context->requestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}';
+    return $this->renderer->render($this->bodyTemplatePath, $context, $extraTags);
+  }
 
-    $appName = !empty($context->appName) ? $context->appName : $this->application;
+  public function renderComment(ErrorContext $context): string
+  {
+    $extraTags = $this->resolveExtraTags($context);
 
-    $body = "### 🚨 Falha Capturada Automaticamente\n\n";
-    $body .= "**Aplicação:** `{$appName}` | **Ambiente:** `{$context->environment}`\n";
-    $body .= "**Mensagem:** `{$context->message}`\n";
-    $body .= "**Arquivo:** `{$context->file}` (Linha: **{$context->line}**)\n";
-    if ($userName !== null) {
-      $body .= "**Usuário:** `{$userName}`\n";
-    }
-    $body .= "\n";
-    $body .= "#### 🔍 Stack Trace\n<details><summary>Clique para expandir</summary>\n\n```php\n{$context->trace}\n```\n</details>\n\n";
-    $body .= "#### 📦 Payload e Ambiente (Sanitizado)\n<details><summary>Clique para expandir</summary>\n\n```json\n{$requestJson}\n```\n</details>\n\n";
-    $body .= "---\n*ID do Erro: `{$context->hash}` | Reportado via ErrorTracker*";
-
-    return $body;
+    return $this->renderer->render($this->commentTemplatePath, $context, $extraTags);
   }
 
   public function report(ErrorContext $context): void
@@ -113,7 +101,7 @@ final class GitHubIssueHandler implements HandlerInterface
       if ($existingIssueNumber !== null) {
         $commentUrl = "https://api.github.com/repos/{$this->repository}/issues/{$existingIssueNumber}/comments";
         $commentPayload = json_encode([
-            'body' => "🔄 **Reincidência Detectada** em " . date('Y-m-d H:i:s') . "\n\nO incidente voltou a ser interceptado pela aplicação.\n- **Severidade:** `{$context->severity->name}`\n- **Mensagem:** `{$context->message}`\n- **Arquivo:** `{$context->file}:{$context->line}`\n- **Hash ID:** `{$context->hash}`",
+            'body' => $this->renderComment($context),
         ]);
         $this->dispatch($commentUrl, $commentPayload ?: '{}');
         return;
@@ -128,6 +116,46 @@ final class GitHubIssueHandler implements HandlerInterface
 
     // Executa a chamada via cURL
     $this->dispatch($url, $payload ?: '{}');
+  }
+
+  /**
+   * Resolve tags extras como usuário dinâmico e aplicação para interpolação nos templates.
+   *
+   * @return array<string, string|int|float|null>
+   */
+  private function resolveExtraTags(ErrorContext $context): array
+  {
+    $extraTags = [];
+    $userName = $context->userName;
+    if ($userName === null) {
+      if ($this->userResolver !== null) {
+        try {
+          $resolved = ($this->userResolver)();
+          if ($resolved !== null && $resolved !== '') {
+            $userName = (string)$resolved;
+          }
+        } catch (Throwable) {
+          // Absorve exceções
+        }
+      }
+      if ($userName === null && $this->userName !== null) {
+        $userName = $this->userName;
+      }
+      if ($userName !== null) {
+        $extraTags['usuario_nome'] = $userName;
+        $extraTags['user'] = $userName;
+        $extraTags['user_name'] = $userName;
+      }
+    }
+
+    $appName = !empty($context->appName) && $context->appName !== 'ErrorTracker'
+        ? $context->appName
+        : $this->application;
+
+    $extraTags['app_name'] = $appName;
+    $extraTags['application'] = $appName;
+
+    return $extraTags;
   }
 
   private function findOpenIssueNumber(string $hash): ?int

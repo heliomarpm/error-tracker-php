@@ -97,6 +97,24 @@ $handler = new EmailHandler(
 );
 ```
 
+### No GitHubIssueHandler:
+```php
+use HeliomarPM\ErrorTracker\Handlers\GitHubIssueHandler;
+
+$handler = new GitHubIssueHandler(
+    token: 'ghp_meuTokenSecreto',
+    repository: 'minha-empresa/meu-projeto',
+    bodyTemplateOrPath: __DIR__ . '/templates/custom_issue_body.tpl',       // Template do corpo da issue
+    commentTemplateOrPath: __DIR__ . '/templates/custom_issue_comment.tpl'  // Template do comentário de reincidência
+);
+```
+
+> **Templates Padrão Disponíveis:**
+> * `src/Templates/filelog.tpl` — logs em arquivo de texto.
+> * `src/Templates/email_html.tpl` e `email_text.tpl` — alertas de e-mail.
+> * `src/Templates/github_issue_body.tpl` — corpo da issue em Markdown.
+> * `src/Templates/github_issue_comment.tpl` — comentário de reincidência em Markdown.
+
 ---
 
 ## 4. Usando uma Closure Formatadora Customizada

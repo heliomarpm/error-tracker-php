@@ -66,6 +66,84 @@ class GitHubIssueHandlerTest extends TestCase
         // Deve retornar imediatamente sem tentar disparar rede
         $handler->report($context);
     }
+
+    public function testRenderBodyWithCustomTemplate(): void
+    {
+        $customTemplate = "CUSTOM ISSUE [{{app_name}}] - {{severity}}: {{message}} (Hash: {{hash}})";
+        $handler = new GitHubIssueHandler(
+            token: 'token_mock',
+            repository: 'heliomarpm/error-tracker',
+            bodyTemplateOrPath: $customTemplate
+        );
+
+        $context = $this->createContext('Falha customizada');
+        $body = $handler->renderBody($context);
+
+        $this->assertStringContainsString('CUSTOM ISSUE [ErrorTracker] - CRITICAL: Falha customizada', $body);
+        $this->assertStringContainsString('Hash: ' . $context->hash, $body);
+    }
+
+    public function testRenderCommentDefaultTemplate(): void
+    {
+        $handler = new GitHubIssueHandler('token_mock', 'heliomarpm/error-tracker');
+        $context = $this->createContext('Reincidência de erro');
+
+        $comment = $handler->renderComment($context);
+
+        $this->assertStringContainsString('🔄 **Reincidência Detectada** em ', $comment);
+        $this->assertStringContainsString('- **Severidade:** `CRITICAL`', $comment);
+        $this->assertStringContainsString('- **Mensagem:** `Reincidência de erro`', $comment);
+        $this->assertStringContainsString('- **Hash ID:** `' . $context->hash . '`', $comment);
+    }
+
+    public function testRenderCommentWithCustomTemplate(): void
+    {
+        $customComment = "REINCIDÊNCIA: {{message}} no arquivo {{file}}:{{line}}";
+        $handler = new GitHubIssueHandler(
+            token: 'token_mock',
+            repository: 'heliomarpm/error-tracker',
+            commentTemplateOrPath: $customComment
+        );
+
+        $context = $this->createContext('Query timeout');
+        $comment = $handler->renderComment($context);
+
+        $this->assertSame("REINCIDÊNCIA: Query timeout no arquivo {$context->file}:{$context->line}", $comment);
+    }
+
+    public function testRenderBodyAndCommentWithUserResolution(): void
+    {
+        $handler = new GitHubIssueHandler(
+            token: 'token_mock',
+            repository: 'heliomarpm/error-tracker',
+            userResolver: fn() => 'admin_resolvido'
+        );
+
+        $context = $this->createContext('Erro com usuario');
+        $body = $handler->renderBody($context);
+        $comment = $handler->renderComment($context);
+
+        $this->assertStringContainsString('**Usuário:** `admin_resolvido`', $body);
+        $this->assertStringContainsString('- **Usuário:** `admin_resolvido`', $comment);
+    }
+
+    public function testRenderBodyMessageOnly(): void
+    {
+        $handler = new GitHubIssueHandler('token_mock', 'heliomarpm/error-tracker');
+        $context = new ErrorContext(
+            new Exception('Apenas aviso informativo'),
+            [],
+            Severity::INFO,
+            isException: false
+        );
+
+        $body = $handler->renderBody($context);
+
+        $this->assertStringContainsString('### ℹ️ Evento Informativo Capturado', $body);
+        $this->assertStringNotContainsString('### 🚨 Falha Capturada Automaticamente', $body);
+        $this->assertStringNotContainsString('#### 🔍 Stack Trace', $body);
+    }
+
     private function createContext(string $message = 'Falha de conexão', Severity $severity = Severity::CRITICAL): ErrorContext
     {
         return new ErrorContext(
