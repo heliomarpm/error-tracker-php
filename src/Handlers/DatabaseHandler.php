@@ -53,6 +53,7 @@ final class DatabaseHandler implements HandlerInterface
       $record = $this->buildRecord($context);
 
       $stmt->execute([
+          ':app_name' => $record['app_name'],
           ':hash' => $record['hash'],
           ':severity' => $record['severity'],
           ':error_class' => $record['error_class'],
@@ -98,6 +99,7 @@ final class DatabaseHandler implements HandlerInterface
     }
 
     return [
+        'app_name' => substr($context->appName, 0, 100),
         'hash' => $context->hash,
         'severity' => $context->severity->value,
         'error_class' => $context->exceptionClass,
@@ -129,16 +131,16 @@ final class DatabaseHandler implements HandlerInterface
   {
     if ($driver === 'sqlite') {
       return "INSERT INTO {$this->tableName}
-              (hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
+              (app_name, hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
               VALUES
-              (:hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, datetime('now'), datetime('now'), 1)
+              (:app_name, :hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, datetime('now'), datetime('now'), 1)
               ON CONFLICT(hash) DO UPDATE SET updated_at = datetime('now'), incidents = incidents + 1;";
     }
 
     return "INSERT INTO {$this->tableName}
-            (hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
+            (app_name, hash, severity, error_class, previous_class, message, file, line, method, uri, user_name, trace, payload, created_at, updated_at, incidents)
             VALUES
-            (:hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, NOW(), NOW(), 1)
+            (:app_name, :hash, :severity, :error_class, :previous_class, :message, :file, :line, :method, :uri, :user_name, :trace, :payload, NOW(), NOW(), 1)
             ON DUPLICATE KEY UPDATE updated_at = NOW(), incidents = incidents + 1;";
   }
 
@@ -149,6 +151,7 @@ final class DatabaseHandler implements HandlerInterface
     if ($driver === 'sqlite') {
       $sql = "CREATE TABLE IF NOT EXISTS `{$this->tableName}` (
               `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+              `app_name` VARCHAR(100) NULL,
               `hash` VARCHAR(32) NOT NULL,
               `severity` VARCHAR(20) NOT NULL,
               `error_class` VARCHAR(150) NOT NULL,
@@ -166,6 +169,7 @@ final class DatabaseHandler implements HandlerInterface
               `incidents` INT DEFAULT 1,
               CONSTRAINT `uq_hash` UNIQUE (`hash`)
           );
+          CREATE INDEX IF NOT EXISTS `idx_app_name` ON `{$this->tableName}` (`app_name`);
           CREATE INDEX IF NOT EXISTS `idx_severity` ON `{$this->tableName}` (`severity`);
           CREATE INDEX IF NOT EXISTS `idx_error_class` ON `{$this->tableName}` (`error_class`);
           CREATE INDEX IF NOT EXISTS `idx_updated_at` ON `{$this->tableName}` (`updated_at`);
@@ -174,6 +178,7 @@ final class DatabaseHandler implements HandlerInterface
       // Sintaxe compatível com MySQL / MariaDB
       $sql = "CREATE TABLE IF NOT EXISTS `{$this->tableName}` (
               `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+              `app_name` VARCHAR(100) NULL,
               `hash` VARCHAR(32) NOT NULL,
               `severity` VARCHAR(20) NOT NULL,
               `error_class` VARCHAR(150) NOT NULL,
@@ -190,6 +195,7 @@ final class DatabaseHandler implements HandlerInterface
               `updated_at` DATETIME NOT NULL,
               `incidents` INT DEFAULT 1,
               UNIQUE KEY `uq_hash` (`hash`),
+              INDEX `idx_app_name` (`app_name`),
               INDEX `idx_severity` (`severity`),
               INDEX `idx_error_class` (`error_class`),
               INDEX `idx_updated_at` (`updated_at`),

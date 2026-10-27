@@ -44,6 +44,7 @@ final class DatabaseHandlerTest extends TestCase
 
         $this->assertNotEmpty($row);
         $this->assertSame($context->hash, $row['hash']);
+        $this->assertSame('ErrorTracker', $row['app_name']);
         $this->assertSame('critical', $row['severity']);
         $this->assertSame('ErrorException', $row['error_class']);
         $this->assertNull($row['previous_class']);
@@ -148,5 +149,29 @@ final class DatabaseHandlerTest extends TestCase
         $stmt = $this->pdo->query('SELECT user_name FROM test_errors_resolver WHERE hash = ' . $this->pdo->quote($context->hash));
         $this->assertNotFalse($stmt);
         $this->assertSame('usuario_sessao_123', $stmt->fetchColumn());
+    }
+
+    public function testPersistsCustomAppName(): void
+    {
+        $exception = new RuntimeException('Erro de microsserviço');
+        $context = new ErrorContext($exception, [], Severity::CRITICAL, appName: 'Checkout Service');
+
+        $this->handler->report($context);
+
+        $stmt = $this->pdo->query('SELECT app_name FROM test_errors WHERE hash = ' . $this->pdo->quote($context->hash));
+        $this->assertNotFalse($stmt);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $this->assertNotEmpty($row);
+        $this->assertSame('Checkout Service', $row['app_name']);
+    }
+
+    public function testBuildRecordIncludesAppName(): void
+    {
+        $context = new ErrorContext(new Exception('Teste'), [], Severity::WARNING, appName: 'Portal Admin');
+        $record = $this->handler->buildRecord($context);
+
+        $this->assertArrayHasKey('app_name', $record);
+        $this->assertSame('Portal Admin', $record['app_name']);
     }
 }

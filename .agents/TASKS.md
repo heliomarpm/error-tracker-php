@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 20/25 (80%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** em desenvolvimento | **Progresso:** 21/25 (84%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -12,15 +12,6 @@
 (nenhuma)
 
 ## Backlog
-
-- [ ] **T-021 · P1 · Adicionar coluna app_name no DatabaseHandler**
-  - Origem: assessment | Dep.: nenhuma
-  - Ref: [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [DatabaseHandlerTest.php](../tests/Unit/DatabaseHandlerTest.php)
-  - DoD:
-    - [ ] Adicionar campo `app_name VARCHAR(100)` no DDL SQLite e MySQL em `createTableIfNotExists()`
-    - [ ] Adicionar índice `idx_app_name` e atualizar inserções/registros para vincular `$context->appName`
-    - [ ] Atualizar `buildRecord()` e queries de inserção/reincidência
-    - [ ] Atualizar testes unitários em `tests/Unit/DatabaseHandlerTest.php`
 
 - [ ] **T-022 · P2 · Otimizar performance de I/O em TemplateRenderer e StackTraceFormatter**
   - Origem: assessment | Dep.: nenhuma
@@ -57,6 +48,15 @@
     - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
 
 ## Concluídas recentemente
+
+- [x] **T-021 · P1 · Adicionar coluna app_name no DatabaseHandler** (2026-10-27)
+  - Arquivos: [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [DatabaseHandlerTest.php](../tests/Unit/DatabaseHandlerTest.php)
+  - Evidência: testes passaram (70 testes, 232 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Adicionar campo `app_name VARCHAR(100)` no DDL SQLite e MySQL em `createTableIfNotExists()`
+    - [x] Adicionar índice `idx_app_name` e atualizar inserções/registros para vincular `$context->appName`
+    - [x] Atualizar `buildRecord()` e queries de inserção/reincidência
+    - [x] Atualizar testes unitários em `tests/Unit/DatabaseHandlerTest.php`
 
 - [x] **T-020 · P1 · Blindar unserialize no FileCache e sanear logs e lifecycle do ErrorTracker** (2026-10-27)
   - Arquivos: [FileCache.php](../src/Cache/FileCache.php), [ErrorTracker.php](../src/ErrorTracker.php), [FileCacheTest.php](../tests/Unit/FileCacheTest.php), [ErrorTrackerTest.php](../tests/Unit/ErrorTrackerTest.php)
