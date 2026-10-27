@@ -1558,7 +1558,8 @@
           <!-- Sub-Panes of Handlers -->
           <div id="handler-emailHtml" class="preview-box active">
             <div class="preview-card-wrap">
-              <iframe id="emailHtmlFrame" style="width: 100%; height: 480px; border: none; background: #0B0E14;"
+              <iframe id="emailHtmlFrame" sandbox="allow-same-origin"
+                style="width: 100%; height: 480px; border: none; background: #0B0E14;"
                 title="Email HTML Preview"></iframe>
             </div>
           </div>

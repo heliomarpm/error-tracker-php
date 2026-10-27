@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 25/25 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** concluído | **Progresso:** 26/26 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -16,6 +16,15 @@
 (nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-026 · P1 · Blindar playground contra Path Traversal, payload DoS e aplicar sandbox em previews** (2026-10-27)
+  - Arquivos: [router.php](../demo/router.php), [api.php](../demo/api.php), [index.php](../demo/index.php)
+  - Evidência: Path Traversal bloqueado com HTTP 403 Forbidden, payload limitado a 64 KB com HTTP 413, iframe com `sandbox="allow-same-origin"`, suíte com 79 testes e 265 asserções 100% aprovados, PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] No `demo/router.php`, validar se `realpath($filePath)` pertence estritamente ao diretório `__DIR__`, bloqueando requisições com `../` para arquivos fora da pasta demo com 403 Forbidden
+    - [x] No `demo/api.php`, limitar o tamanho máximo do corpo da requisição a 64 KB (rejeitando requisições maiores com HTTP 413)
+    - [x] No `demo/index.php`, adicionar atributo `sandbox="allow-same-origin"` no `iframe#emailHtmlFrame` para blindar contra execução de scripts injetados
+    - [x] Validar testes unitários, PHPStan, Pint e comportamento do roteador contra path traversal
 
 - [x] **T-025 · P3 · Adicionar favicon na aplicação demo** (2026-10-27)
   - Arquivos: [favicon.svg](../demo/favicon.svg), [index.php](../demo/index.php), [500.php](../demo/500.php), [router.php](../demo/router.php)

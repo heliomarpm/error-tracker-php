@@ -99,7 +99,27 @@ $captureHandler = new class (function (ErrorContext $context) use (&$capturedCon
     }
 };
 
-$inputRaw = file_get_contents('php://input');
+// Proteção contra DoS de memória: limita payload a 64 KB
+$contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+if ($contentLength > 65536) {
+    http_response_code(413);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Payload Too Large: O corpo da requisição excede o limite máximo permitido de 64 KB.',
+    ]);
+    exit(0);
+}
+
+$inputRaw = file_get_contents('php://input', false, null, 0, 65537);
+if (is_string($inputRaw) && strlen($inputRaw) > 65536) {
+    http_response_code(413);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Payload Too Large: O corpo da requisição excede o limite máximo permitido de 64 KB.',
+    ]);
+    exit(0);
+}
+
 $input = !empty($inputRaw) ? (json_decode($inputRaw, true) ?: []) : $_POST;
 $action = (string)($input['action'] ?? ($_GET['action'] ?? 'info'));
 
