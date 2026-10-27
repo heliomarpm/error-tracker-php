@@ -17,6 +17,31 @@ final class ErrorTracker implements LoggerInterface
 {
   use LoggerTrait;
 
+  /**
+   * Chaves essenciais de requisição preservadas em $_SERVER.
+   */
+  private const ALLOWED_SERVER_KEYS = [
+      'REQUEST_METHOD',
+      'REQUEST_URI',
+      'QUERY_STRING',
+      'SERVER_NAME',
+      'SERVER_ADDR',
+      'SERVER_PORT',
+      'SERVER_PROTOCOL',
+      'SERVER_SOFTWARE',
+      'REMOTE_ADDR',
+      'REMOTE_PORT',
+      'SCRIPT_NAME',
+      'SCRIPT_FILENAME',
+      'PHP_SELF',
+      'DOCUMENT_ROOT',
+      'HTTPS',
+      'CONTENT_TYPE',
+      'CONTENT_LENGTH',
+      'argv',
+      'argc',
+  ];
+
   /** @var HandlerInterface[] */
   private array $handlers = [];
   private DataSanitizer $sanitizer;
@@ -48,6 +73,7 @@ final class ErrorTracker implements LoggerInterface
    * @param string $environment Ambiente de execução (ex: production, staging, development, local).
    * @param string|null $serverName Nome do host ou servidor.
    * @param array<string, mixed> $extraContext Metadados adicionais compartilhados com todos os handlers.
+   * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout no sanitizador.
    */
   public function __construct(
       ?CacheInterface $cache = null,
@@ -57,9 +83,10 @@ final class ErrorTracker implements LoggerInterface
       string $appName = 'ErrorTracker',
       string $environment = 'production',
       ?string $serverName = null,
-      array $extraContext = []
+      array $extraContext = [],
+      array $maskedKeys = []
   ) {
-    $this->sanitizer = new DataSanitizer();
+    $this->sanitizer = new DataSanitizer($maskedKeys);
     $this->cache = $cache;
     $this->cacheTtl = $cacheTtlSeconds;
     $this->userName = $userName;
@@ -103,6 +130,7 @@ final class ErrorTracker implements LoggerInterface
    * @param string|null $userName Nome ou identificador estático do usuário.
    * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolver o usuário.
    * @param array<string, mixed> $extraContext Metadados extras compartilhados.
+   * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout.
    */
   public function parameters(
       array|string|null $appName = null,
@@ -110,7 +138,8 @@ final class ErrorTracker implements LoggerInterface
       ?string $serverName = null,
       ?string $userName = null,
       ?callable $userResolver = null,
-      array $extraContext = []
+      array $extraContext = [],
+      array $maskedKeys = []
   ): self {
     if (is_array($appName)) {
       $params = $appName;
@@ -138,6 +167,15 @@ final class ErrorTracker implements LoggerInterface
       } elseif (isset($params['context']) && is_array($params['context'])) {
         $this->extraContext = array_merge($this->extraContext, $params['context']);
       }
+      if (isset($params['masked_keys']) && is_array($params['masked_keys'])) {
+        /** @var string[] $keys */
+        $keys = $params['masked_keys'];
+        $this->sanitizer->addMaskedKeys($keys);
+      } elseif (isset($params['maskedKeys']) && is_array($params['maskedKeys'])) {
+        /** @var string[] $keys */
+        $keys = $params['maskedKeys'];
+        $this->sanitizer->addMaskedKeys($keys);
+      }
       return $this;
     }
 
@@ -159,6 +197,9 @@ final class ErrorTracker implements LoggerInterface
     if (!empty($extraContext)) {
       $this->extraContext = array_merge($this->extraContext, $extraContext);
     }
+    if (!empty($maskedKeys)) {
+      $this->sanitizer->addMaskedKeys($maskedKeys);
+    }
 
     return $this;
   }
@@ -176,7 +217,27 @@ final class ErrorTracker implements LoggerInterface
         'serverName' => $this->serverName,
         'userName' => $this->userName,
         'extraContext' => $this->extraContext,
+        'maskedKeys' => $this->sanitizer->getMaskedKeys(),
     ];
+  }
+
+  /**
+   * Adiciona chaves adicionais para sofrerem blackout total no sanitizador.
+   *
+   * @param array<string> $keys
+   */
+  public function addMaskedKeys(array $keys): self
+  {
+    $this->sanitizer->addMaskedKeys($keys);
+    return $this;
+  }
+
+  /**
+   * Retorna a instância do sanitizador de dados.
+   */
+  public function getSanitizer(): DataSanitizer
+  {
+    return $this->sanitizer;
   }
 
   /**
@@ -281,6 +342,7 @@ final class ErrorTracker implements LoggerInterface
    * @param string|null $userName Nome do usuário padrão.
    * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico de usuário.
    * @param array<string, mixed> $extraContext Metadados adicionais compartilhados.
+   * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout.
    */
   public function register(
       array|string|null $appName = null,
@@ -288,10 +350,11 @@ final class ErrorTracker implements LoggerInterface
       ?string $serverName = null,
       ?string $userName = null,
       ?callable $userResolver = null,
-      array $extraContext = []
+      array $extraContext = [],
+      array $maskedKeys = []
   ): void {
-    if ($appName !== null || $environment !== null || $serverName !== null || $userName !== null || $userResolver !== null || !empty($extraContext)) {
-      $this->parameters($appName, $environment, $serverName, $userName, $userResolver, $extraContext);
+    if ($appName !== null || $environment !== null || $serverName !== null || $userName !== null || $userResolver !== null || !empty($extraContext) || !empty($maskedKeys)) {
+      $this->parameters($appName, $environment, $serverName, $userName, $userResolver, $extraContext, $maskedKeys);
     }
 
     error_reporting(E_ALL);
@@ -421,7 +484,7 @@ final class ErrorTracker implements LoggerInterface
     $rawRequest = [
         'post' => $_POST,
         'get' => $_GET,
-        'server' => $_SERVER,
+        'server' => $this->filterServerData($_SERVER),
     ];
 
     $mergedContext = array_merge($this->extraContext, $extraContext);
@@ -506,5 +569,24 @@ final class ErrorTracker implements LoggerInterface
       // Força a parada do servidor para evitar estragos em banco de dados ou views corrompidas
       exit(1);
     }
+  }
+
+  /**
+   * Filtra chaves de $_SERVER mantendo apenas cabeçalhos HTTP e variáveis essenciais de requisição,
+   * descartando variáveis de ambiente do sistema operacional e potenciais segredos de infraestrutura.
+   *
+   * @param array<string, mixed> $server
+   * @return array<string, mixed>
+   */
+  private function filterServerData(array $server): array
+  {
+    $filtered = [];
+    foreach ($server as $key => $value) {
+      $keyStr = (string)$key;
+      if (str_starts_with($keyStr, 'HTTP_') || in_array($keyStr, self::ALLOWED_SERVER_KEYS, true)) {
+        $filtered[$key] = $value;
+      }
+    }
+    return $filtered;
   }
 }

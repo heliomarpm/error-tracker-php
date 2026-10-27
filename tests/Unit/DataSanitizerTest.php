@@ -85,4 +85,78 @@ final class DataSanitizerTest extends TestCase
         $this->assertSame('********', $clean['dados']['usuario']['senha']);
         $this->assertSame('d**@empresa.com', $clean['dados']['usuario']['contato']['email']);
     }
+
+    public function testLimitsRecursionDepthAtMaxDepth(): void
+    {
+        $deepInput = [
+            'level1' => [
+                'level2' => [
+                    'level3' => [
+                        'level4' => [
+                            'level5' => [
+                                'level6' => 'valor ultra profundo',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $clean = $this->sanitizer->sanitize($deepInput);
+
+        $this->assertIsArray($clean['level1']);
+        $this->assertIsArray($clean['level1']['level2']);
+        $this->assertIsArray($clean['level1']['level2']['level3']);
+        $this->assertIsArray($clean['level1']['level2']['level3']['level4']);
+        $this->assertSame('[DEPTH_LIMIT]', $clean['level1']['level2']['level3']['level4']['level5']);
+    }
+
+    public function testCustomMaxDepthConfigurable(): void
+    {
+        $sanitizer = new DataSanitizer(maxDepth: 2);
+        $input = [
+            'level1' => [
+                'level2' => [
+                    'item' => 'segredo',
+                ],
+            ],
+        ];
+
+        $clean = $sanitizer->sanitize($input);
+        $this->assertSame('[DEPTH_LIMIT]', $clean['level1']['level2']);
+    }
+
+    public function testSkipsRegexChecksForExcessivelyLongStrings(): void
+    {
+        $longString = str_repeat('abc ', 120) . ' 123.456.789-10 ' . str_repeat('def ', 50);
+        $this->assertGreaterThan(500, strlen($longString));
+
+        $clean = $this->sanitizer->sanitize(['payload' => $longString]);
+
+        $this->assertSame($longString, $clean['payload']);
+
+        $shortString = '123.456.789-10';
+        $cleanShort = $this->sanitizer->sanitize(['payload' => $shortString]);
+        $this->assertSame('***.***.789-10', $cleanShort['payload']);
+    }
+
+    public function testCustomMaskedKeysCanBeAddedViaConstructorAndMethod(): void
+    {
+        $sanitizer = new DataSanitizer(['api_key', 'cartao_credito']);
+
+        $input = [
+            'api_key' => 'meu-token-secreto-123',
+            'cartao_credito' => '1234',
+            'publico' => 'visivel',
+        ];
+
+        $clean = $sanitizer->sanitize($input);
+        $this->assertSame('********', $clean['api_key']);
+        $this->assertSame('********', $clean['cartao_credito']);
+        $this->assertSame('visivel', $clean['publico']);
+
+        $sanitizer->addMaskedKeys(['pin_acesso']);
+        $clean2 = $sanitizer->sanitize(['pin_acesso' => '9988']);
+        $this->assertSame('********', $clean2['pin_acesso']);
+    }
 }

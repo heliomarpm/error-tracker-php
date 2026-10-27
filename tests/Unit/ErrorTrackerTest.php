@@ -385,4 +385,81 @@ final class ErrorTrackerTest extends TestCase
             error_reporting($prevReporting);
         }
     }
+
+    public function testFiltersServerDataToEssentialKeysAndHeaders(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/api/checkout';
+        $_SERVER['HTTP_CUSTOM_AUTH'] = 'Bearer 123456';
+        $_SERVER['DATABASE_PASSWORD'] = 'root_super_secret';
+        $_SERVER['AWS_SECRET_ACCESS_KEY'] = 'AKIAIOSFODNN7EXAMPLE';
+
+        try {
+            $tracker->handleException(new RuntimeException('Erro de servidor'));
+
+            $this->assertNotNull($reportedContext);
+            $serverData = $reportedContext->requestData['server'] ?? [];
+
+            // Chaves essenciais e headers HTTP devem estar presentes
+            $this->assertSame('POST', $serverData['REQUEST_METHOD']);
+            $this->assertSame('/api/checkout', $serverData['REQUEST_URI']);
+            $this->assertArrayHasKey('HTTP_CUSTOM_AUTH', $serverData);
+
+            // Segredos de variáveis de ambiente do sistema operacional devem ser eliminados
+            $this->assertArrayNotHasKey('DATABASE_PASSWORD', $serverData);
+            $this->assertArrayNotHasKey('AWS_SECRET_ACCESS_KEY', $serverData);
+        } finally {
+            unset($_SERVER['HTTP_CUSTOM_AUTH'], $_SERVER['DATABASE_PASSWORD'], $_SERVER['AWS_SECRET_ACCESS_KEY']);
+        }
+    }
+
+    public function testCustomMaskedKeysConfiguredViaParameters(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->parameters([
+            'masked_keys' => ['chave_pix', 'cvv_cartao'],
+        ]);
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+
+        $_POST['chave_pix'] = 'meu-pix-secreto';
+        $_POST['nome'] = 'Carlos';
+
+        try {
+            $tracker->handleException(new RuntimeException('Erro PIX'));
+
+            $this->assertNotNull($reportedContext);
+            $this->assertSame('********', $reportedContext->requestData['post']['chave_pix']);
+            $this->assertSame('Carlos', $reportedContext->requestData['post']['nome']);
+            $this->assertContains('chave_pix', $tracker->getParameters()['maskedKeys']);
+        } finally {
+            unset($_POST['chave_pix'], $_POST['nome']);
+        }
+    }
 }

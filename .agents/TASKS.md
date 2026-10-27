@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** em desenvolvimento | **Progresso:** 23/25 (92%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** em desenvolvimento | **Progresso:** 24/25 (96%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -13,15 +13,6 @@
 
 ## Backlog
 
-- [ ] **T-024 · P2 · Reforçar robustez e customização do DataSanitizer e payload de requisição**
-  - Origem: assessment | Dep.: nenhuma
-  - Ref: [DataSanitizer.php](../src/DataSanitizer.php), [ErrorTracker.php](../src/ErrorTracker.php), [DataSanitizerTest.php](../tests/Unit/DataSanitizerTest.php)
-  - DoD:
-    - [ ] Adicionar limite de recursão `$maxDepth = 5` no `DataSanitizer::sanitize()` para evitar estouro de memória em arrays circulares/profundos
-    - [ ] Otimizar verificação de regex pulando checagem em strings com comprimento excessivo (> 500 caracteres)
-    - [ ] Permitir configuração de chaves mascaradas adicionais customizáveis pelo usuário
-    - [ ] Filtrar chaves essenciais de `$_SERVER` em `processError()` para evitar inchar o payload
-
 - [ ] **T-025 · P3 · Adicionar favicon na aplicação demo**
   - Origem: manual | Dep.: nenhuma
   - Ref: [index.php](../demo/index.php), [500.php](../demo/500.php), [router.php](../demo/router.php)
@@ -31,6 +22,15 @@
     - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
 
 ## Concluídas recentemente
+
+- [x] **T-024 · P2 · Reforçar robustez e customização do DataSanitizer e payload de requisição** (2026-10-27)
+  - Arquivos: [DataSanitizer.php](../src/DataSanitizer.php), [ErrorTracker.php](../src/ErrorTracker.php), [DataSanitizerTest.php](../tests/Unit/DataSanitizerTest.php), [ErrorTrackerTest.php](../tests/Unit/ErrorTrackerTest.php)
+  - Evidência: testes passaram (79 testes, 265 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Adicionar limite de recursão `$maxDepth = 5` no `DataSanitizer::sanitize()` para evitar estouro de memória em arrays circulares/profundos
+    - [x] Otimizar verificação de regex pulando checagem em strings com comprimento excessivo (> 500 caracteres)
+    - [x] Permitir configuração de chaves mascaradas adicionais customizáveis pelo usuário
+    - [x] Filtrar chaves essenciais de `$_SERVER` em `processError()` para evitar inchar o payload e não vazar variáveis de ambiente de infraestrutura
 
 - [x] **T-023 · P2 · Eliminar duplicidade de resolução de usuário nos Handlers via trait** (2026-10-27)
   - Arquivos: [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php), [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [WebhookHandlerTest.php](../tests/Unit/WebhookHandlerTest.php)
