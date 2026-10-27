@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 19/19 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-26
+> **Status:** em desenvolvimento | **Progresso:** 20/25 (80%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
 
 ## Em progresso
 
@@ -13,9 +13,60 @@
 
 ## Backlog
 
-(nenhuma)
+- [ ] **T-021 · P1 · Adicionar coluna app_name no DatabaseHandler**
+  - Origem: assessment | Dep.: nenhuma
+  - Ref: [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [DatabaseHandlerTest.php](../tests/Unit/DatabaseHandlerTest.php)
+  - DoD:
+    - [ ] Adicionar campo `app_name VARCHAR(100)` no DDL SQLite e MySQL em `createTableIfNotExists()`
+    - [ ] Adicionar índice `idx_app_name` e atualizar inserções/registros para vincular `$context->appName`
+    - [ ] Atualizar `buildRecord()` e queries de inserção/reincidência
+    - [ ] Atualizar testes unitários em `tests/Unit/DatabaseHandlerTest.php`
+
+- [ ] **T-022 · P2 · Otimizar performance de I/O em TemplateRenderer e StackTraceFormatter**
+  - Origem: assessment | Dep.: nenhuma
+  - Ref: [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [StackTraceFormatter.php](../src/Formatters/StackTraceFormatter.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php)
+  - DoD:
+    - [ ] Implementar cache estático em memória para conteúdo de arquivos `.tpl` em `TemplateRenderer`
+    - [ ] Pré-computar e armazenar raízes de diretório (`cachedRoots`) em `StackTraceFormatter::normalizePath()`
+    - [ ] Configurar `CURLOPT_CONNECTTIMEOUT => 2` em `WebhookHandler` e `GitHubIssueHandler`
+    - [ ] Validar testes existentes e adicionar teste de cache em `TemplateRendererTest`
+
+- [ ] **T-023 · P2 · Eliminar duplicidade de resolução de usuário nos Handlers via trait**
+  - Origem: assessment | Dep.: nenhuma
+  - Ref: [Handlers/](../src/Handlers/), [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php)
+  - DoD:
+    - [ ] Criar trait `ResolvesUserTrait` com método unificado `resolveUser(ErrorContext $context): ?string`
+    - [ ] Substituir o bloco duplicado de resolução de usuário nos 5 handlers (`DatabaseHandler`, `FilelogHandler`, `EmailHandler`, `WebhookHandler`, `GitHubIssueHandler`)
+    - [ ] Garantir 100% de compatibilidade e aprovação de todos os testes unitários
+
+- [ ] **T-024 · P2 · Reforçar robustez e customização do DataSanitizer e payload de requisição**
+  - Origem: assessment | Dep.: nenhuma
+  - Ref: [DataSanitizer.php](../src/DataSanitizer.php), [ErrorTracker.php](../src/ErrorTracker.php), [DataSanitizerTest.php](../tests/Unit/DataSanitizerTest.php)
+  - DoD:
+    - [ ] Adicionar limite de recursão `$maxDepth = 5` no `DataSanitizer::sanitize()` para evitar estouro de memória em arrays circulares/profundos
+    - [ ] Otimizar verificação de regex pulando checagem em strings com comprimento excessivo (> 500 caracteres)
+    - [ ] Permitir configuração de chaves mascaradas adicionais customizáveis pelo usuário
+    - [ ] Filtrar chaves essenciais de `$_SERVER` em `processError()` para evitar inchar o payload
+
+- [ ] **T-025 · P3 · Adicionar favicon na aplicação demo**
+  - Origem: manual | Dep.: nenhuma
+  - Ref: [index.php](../demo/index.php), [500.php](../demo/500.php), [router.php](../demo/router.php)
+  - DoD:
+    - [ ] Criar ícone favicon SVG moderno e alinhado à identidade visual do ErrorTracker em `demo/favicon.svg`
+    - [ ] Adicionar tag `<link rel="icon" type="image/svg+xml" href="/favicon.svg">` no `<head>` de `demo/index.php` e `demo/500.php`
+    - [ ] Validar carregamento do favicon sem erros 404 no servidor embutido
 
 ## Concluídas recentemente
+
+- [x] **T-020 · P1 · Blindar unserialize no FileCache e sanear logs e lifecycle do ErrorTracker** (2026-10-27)
+  - Arquivos: [FileCache.php](../src/Cache/FileCache.php), [ErrorTracker.php](../src/ErrorTracker.php), [FileCacheTest.php](../tests/Unit/FileCacheTest.php), [ErrorTrackerTest.php](../tests/Unit/ErrorTrackerTest.php)
+  - Evidência: testes passaram (68 testes, 226 asserções no PHPUnit), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Adicionar `['allowed_classes' => false]` no `unserialize()` em `FileCache::get()` para mitigar risco de deserialização de objetos
+    - [x] Mover `error_log` em `ErrorTracker::handleError` para dentro de `if (error_reporting() & $level)` respeitando o operador de supressão `@`
+    - [x] Remover chamada de depuração residual `error_log("HeliomarPM ReportAdpter iniciando para erro: ...")` em `ErrorTracker::processError`
+    - [x] Adicionar método estático `unregister(): void` em `ErrorTracker` permitindo restaurar os tratadores nativos de erro e exceção do PHP
+    - [x] Atualizar testes unitários em `tests/Unit/FileCacheTest.php` e `tests/Unit/ErrorTrackerTest.php`
 
 - [x] **T-019 · P2 · Externalizar templates do GitHubIssueHandler em arquivos .tpl** (2026-10-26)
   - Arquivos: [github_issue_body.tpl](../src/Templates/github_issue_body.tpl), [github_issue_comment.tpl](../src/Templates/github_issue_comment.tpl), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [GitHubIssueHandlerTest.php](../tests/Unit/GitHubIssueHandlerTest.php), [TEMPLATES.md](../docs/TEMPLATES.md), [HANDLERS.md](../docs/HANDLERS.md)

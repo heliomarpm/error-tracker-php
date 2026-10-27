@@ -71,6 +71,15 @@ final class ErrorTracker implements LoggerInterface
   }
 
   /**
+   * Restaura os tratadores nativos de erro e exceção do PHP.
+   */
+  public static function unregister(): void
+  {
+    restore_error_handler();
+    restore_exception_handler();
+  }
+
+  /**
    * Define ou atualiza os parâmetros globais da aplicação compartilhados com todos os handlers.
    * Suporta named arguments (PHP 8) ou um array associativo de parâmetros.
    *
@@ -308,8 +317,8 @@ final class ErrorTracker implements LoggerInterface
    */
   public function handleError(int $level, string $message, string $file = "", int $line = 0): bool
   {
-    error_log($level . ": {$message} in {$file}:{$line}");
     if (error_reporting() & $level) {
+      error_log($level . ": {$message} in {$file}:{$line}");
       $severity = match ($level) {
         E_NOTICE, E_USER_NOTICE => Severity::NOTICE,
         E_DEPRECATED, E_USER_DEPRECATED => Severity::DEPRECATED,
@@ -472,14 +481,13 @@ final class ErrorTracker implements LoggerInterface
       $this->cache->set($cacheKey, true, $this->cacheTtl);
     }
 
-    // 4. Dispara o erro para os canais (Adapters)
-    error_log("HeliomarPM ReportAdpter iniciando para erro: {$context->hash}");
+    // 4. Dispara o erro para os canais (Handlers)
     foreach ($this->handlers as $handler) {
       try {
         $handler->report($context);
       } catch (Throwable $e) {
         // Absorve falhas dos próprios adaptadores para não gerar um loop infinito
-        error_log("HeliomarPM ErrorTracker falhou ao executar o adaptador " . get_class($handler) . ": {$e->getMessage()}");
+        error_log("HeliomarPM ErrorTracker falhou ao executar o handler " . get_class($handler) . ": {$e->getMessage()}");
       }
     }
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Tests\Unit;
 
+use __PHP_Incomplete_Class;
 use HeliomarPM\ErrorTracker\Cache\FileCache;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 final class FileCacheTest extends TestCase
 {
@@ -88,5 +90,25 @@ final class FileCacheTest extends TestCase
         $this->cache->set('expired', 'old_data', -5);
         $this->assertNull($this->cache->get('expired'));
         $this->assertFalse($this->cache->has('expired'));
+    }
+
+    public function testReturnsDefaultWhenCacheFileIsCorrupted(): void
+    {
+        $corruptFile = $this->tempDir . '/' . md5('corrupt') . '.cache';
+        file_put_contents($corruptFile, 'corrupted_non_serialized_data');
+
+        $this->assertSame('safe_default', $this->cache->get('corrupt', 'safe_default'));
+        $this->assertFalse($this->cache->has('corrupt'));
+    }
+
+    public function testPreventsInstantiatingSerializedClasses(): void
+    {
+        // Força gravação de um objeto serializado no arquivo
+        $objectFile = $this->tempDir . '/' . md5('obj_key') . '.cache';
+        $payload = serialize(['expires_at' => null, 'value' => new stdClass()]);
+        file_put_contents($objectFile, $payload);
+
+        $result = $this->cache->get('obj_key');
+        $this->assertInstanceOf(__PHP_Incomplete_Class::class, $result);
     }
 }

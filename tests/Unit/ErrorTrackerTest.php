@@ -348,7 +348,41 @@ final class ErrorTrackerTest extends TestCase
         $this->assertSame('App No Register', $tracker->getAppName());
         $this->assertSame('testing', $tracker->getEnvironment());
 
-        restore_error_handler();
-        restore_exception_handler();
+        ErrorTracker::unregister();
+    }
+
+    public function testUnregisterRestoresHandlers(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->register();
+
+        $tracker->unregister();
+        $this->assertTrue(true);
+    }
+
+    public function testHandleErrorRespectsErrorReportingSuppression(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $reported = false;
+        $handler = new class (function () use (&$reported) {
+            $reported = true;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+
+        $tracker->addHandler($handler);
+
+        $prevReporting = error_reporting(0);
+        try {
+            $result = $tracker->handleError(E_WARNING, 'Aviso suprimido', 'teste.php', 10);
+            $this->assertTrue($result);
+            $this->assertFalse($reported, 'Erros suprimidos com error_reporting 0 não devem ser despachados.');
+        } finally {
+            error_reporting($prevReporting);
+        }
     }
 }

@@ -36,7 +36,14 @@ final class FileCache implements CacheInterface
         }
 
         $content = file_get_contents($file);
-        $data = unserialize($content);
+        if ($content === false) {
+            return $default;
+        }
+
+        $data = @unserialize($content, ['allowed_classes' => false]);
+        if (!is_array($data) || !array_key_exists('expires_at', $data) || !array_key_exists('value', $data)) {
+            return $default;
+        }
 
         // Verifica se o cache expirou
         if ($data['expires_at'] !== null && time() > $data['expires_at']) {
