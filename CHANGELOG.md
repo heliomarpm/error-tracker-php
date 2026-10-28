@@ -5,6 +5,28 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+# [1.1.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.2...v1.1.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* **core:** 🔒 blindar unserialize no cache e sanear logs do ErrorTracker ([8e4c1e3](https://github.com/heliomarpm/error-tracker-php/commit/8e4c1e34a8d2d805e1e1f01d9a29d5d0350727f0))
+
+
+### Features
+
+* **core:** ✨ adicionar método parameters e suporte a contexto global ([c7d0825](https://github.com/heliomarpm/error-tracker-php/commit/c7d0825feee500e27dfb0648ee6a9cfc23bc519d))
+* **database:** ✨ adicionar persistência da coluna app_name no DatabaseHandler ([1fb2b2d](https://github.com/heliomarpm/error-tracker-php/commit/1fb2b2dc83d9113c104fb9e6ed636a130ea062de))
+* **demo:** ✨ adicionar favicon svg moderno e fallback de rota ([560c4ec](https://github.com/heliomarpm/error-tracker-php/commit/560c4ec962ac93473944f03448f46cb2accae91f))
+* **demo:** 🛡️ blindar roteador contra path traversal e isolar previews ([038e651](https://github.com/heliomarpm/error-tracker-php/commit/038e651a28befbd55be0616322f816a743e45232))
+* **github:** ✨ externalizar templates de issues em arquivos .tpl ([903442a](https://github.com/heliomarpm/error-tracker-php/commit/903442a18316b78ead832859abdf33e45a48e186))
+* **sanitizer:** 🛡️ reforçar salvaguardas de profundidade e dados do servidor ([b16ac57](https://github.com/heliomarpm/error-tracker-php/commit/b16ac57de3d20b9d4b529020f5ad1d03a2cb0995))
+
+
+### Performance Improvements
+
+* **core:** ⚡ otimizar I/O em TemplateRenderer e StackTraceFormatter ([9a87625](https://github.com/heliomarpm/error-tracker-php/commit/9a87625ab871d6226065dd8a9990eaa2cf322aeb))
+
 ## [1.0.2](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.1...v1.0.2) (2026-10-25)
 
 
