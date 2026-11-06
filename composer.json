@@ -49,8 +49,6 @@
     "format:full": "pint --parallel --max-processes=4 --repair",
     "format:def": "pint --preset=psr12 --parallel --max-processes=4 --repair",
     "lint": "phpstan analyse",
-    "refactor": "rector process --dry-run",
-    "refactor:apply": "rector process",
     "test": "phpunit --configuration phpunit.xml --colors=always",
     "test:v": "phpunit --configuration phpunit.xml --colors=always --debug",
     "test:coverage": "php -d xdebug.mode=coverage vendor/bin/phpunit --configuration phpunit.xml --colors=always --coverage-text",
@@ -60,12 +58,10 @@
     "start": "php -S localhost:8001 -t ./demo demo/router.php",
     "check": [
       "@format",
-      "@lint",
-      "@refactor"
+      "@lint"
     ],
     "fix": [
-      "@format:fix",
-      "@refactor:apply"
+      "@format:fix"
     ],
     "qa": [
       "@test",

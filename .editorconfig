@@ -5,29 +5,28 @@ root = true
 charset = utf-8
 indent_style = space
 indent_size = 2
+end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 160
-end_of_line = lf
+quote_type = single
 
-[*.{ts, js}]
+[*.{js,ts,html}]
+indent_style = tab
+quote_type = double
+
+[*.{php,html}]
 indent_size = 4
 quote_type = double
 
-[*.php]
-quote_type = double
-
-[*.md]
-indent_style = tab
+[*.{sql}]
+insert_final_newline = false
 max_line_length = off
-trim_trailing_whitespace = false
 
-[*.sql]
-indent_style = space
-indent_size = 2
-
-{*,{yml,yaml,cff}}
-indent_size = 2
-indent_style = space
-insert_final_newline = true
+[*.{md,sh}]
 trim_trailing_whitespace = false
+max_line_length = off
+
+[*.{json,yml,yaml,cff}]
+trim_trailing_whitespace = false
+max_line_length = off
