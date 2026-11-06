@@ -62,6 +62,9 @@ final class ErrorTracker implements LoggerInterface
   /** @var array<string, mixed> */
   private array $extraContext = [];
 
+  /** @var list<string> */
+  private array $ignoredCallers = [];
+
   /**
    * Inicializa o rastreador.
    *
@@ -238,6 +241,29 @@ final class ErrorTracker implements LoggerInterface
   public function getSanitizer(): DataSanitizer
   {
     return $this->sanitizer;
+  }
+
+  /**
+   * Adiciona caminhos de arquivos, classes ou padrões para ignorar no backtrace ao determinar a origem da mensagem manual.
+   */
+  public function addIgnoredCaller(string $classOrPath): self
+  {
+    $normalized = str_replace('\\', '/', $classOrPath);
+    if (!in_array($normalized, $this->ignoredCallers, true)) {
+      $this->ignoredCallers[] = $normalized;
+    }
+
+    return $this;
+  }
+
+  /**
+   * Retorna os callers configurados para serem ignorados na detecção da origem.
+   *
+   * @return list<string>
+   */
+  public function getIgnoredCallers(): array
+  {
+    return $this->ignoredCallers;
   }
 
   /**
@@ -443,19 +469,42 @@ final class ErrorTracker implements LoggerInterface
    */
   private function captureMessage(string $message, Severity $severity, array $extraContext = []): void
   {
-    // Usa o backtrace para descobrir exatamente qual arquivo e linha da aplicação chamou o método,
-    // ignorando frames internos do ErrorTracker e do LoggerTrait do PSR-3.
-    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
     $file = 'UNKNOWN_FILE';
     $line = 0;
 
-    foreach ($trace as $frame) {
-      $frameFile = $frame['file'] ?? '';
-      $normalized = str_replace('\\', '/', (string)$frameFile);
-      if ($frameFile !== ''
-          && !str_ends_with($normalized, 'src/ErrorTracker.php')
-          && !str_contains($normalized, 'psr/log')
-      ) {
+    if (!empty($extraContext['file']) && is_string($extraContext['file'])) {
+      $file = $extraContext['file'];
+      $line = isset($extraContext['line']) ? (int)$extraContext['line'] : 0;
+    } else {
+      // Usa o backtrace para descobrir exatamente qual arquivo e linha da aplicação chamou o método,
+      // ignorando frames internos do ErrorTracker, do LoggerTrait do PSR-3 e wrappers configurados.
+      $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+
+      foreach ($trace as $frame) {
+        $frameFile = $frame['file'] ?? '';
+        $normalized = str_replace('\\', '/', (string)$frameFile);
+        if ($frameFile === '') {
+          continue;
+        }
+
+        if (str_ends_with($normalized, 'src/ErrorTracker.php')
+            || str_contains($normalized, 'psr/log')
+        ) {
+          continue;
+        }
+
+        $isIgnored = false;
+        foreach ($this->ignoredCallers as $ignored) {
+          if ($ignored !== '' && str_contains($normalized, $ignored)) {
+            $isIgnored = true;
+            break;
+          }
+        }
+
+        if ($isIgnored) {
+          continue;
+        }
+
         $file = (string)$frameFile;
         $line = (int)($frame['line'] ?? 0);
         break;

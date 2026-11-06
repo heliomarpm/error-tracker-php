@@ -462,4 +462,68 @@ final class ErrorTrackerTest extends TestCase
             unset($_POST['chave_pix'], $_POST['nome']);
         }
     }
+
+    public function testSkipsIgnoredCallersWhenDeterminingOrigin(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+        $tracker->addIgnoredCaller('CustomWrapperHelper');
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+        $tracker->addHandler($handler);
+
+        // Simula uma chamada através de uma classe wrapper que encapsula a chamada de log
+        $wrapper = new class ($tracker) {
+            public function __construct(private ErrorTracker $tracker) {}
+            public function logThroughWrapper(string $msg): void
+            {
+                // Este método simula um helper/wrapper cuja classe ou arquivo deve ser ignorado
+                $this->tracker->warning($msg);
+            }
+        };
+
+        // Adiciona a classe anônima do wrapper aos ignorados
+        $tracker->addIgnoredCaller(get_class($wrapper));
+
+        $wrapper->logThroughWrapper('Mensagem via wrapper');
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('Mensagem via wrapper', $reportedContext->message);
+        // A origem deve ser este arquivo de teste (ErrorTrackerTest.php), e não a classe anônima wrapper!
+        $this->assertSame(__FILE__, $reportedContext->file);
+    }
+
+    public function testUsesExplicitFileAndLineFromContext(): void
+    {
+        $tracker = new ErrorTracker($this->cache);
+
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+        $tracker->addHandler($handler);
+
+        $tracker->warning('Mensagem com origem customizada', [
+            'file' => '/app/CustomService.php',
+            'line' => 123,
+        ]);
+
+        $this->assertNotNull($reportedContext);
+        $this->assertSame('/app/CustomService.php', $reportedContext->file);
+        $this->assertSame(123, $reportedContext->line);
+    }
 }
