@@ -85,6 +85,10 @@ final class FileCache implements CacheInterface
     public function clear(): bool
     {
         $files = glob($this->cacheDirectory . '/*');
+        if ($files === false) {
+            return false;
+        }
+
         $success = true;
         foreach ($files as $file) {
             if (is_file($file)) {
@@ -109,6 +113,9 @@ final class FileCache implements CacheInterface
         return $result;
     }
 
+    /**
+     * @param iterable<string, mixed> $values
+     */
     public function setMultiple(iterable $values, DateInterval|int|null $ttl = null): bool
     {
         $success = true;

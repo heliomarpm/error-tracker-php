@@ -20,6 +20,7 @@ final class ErrorContext
     public readonly string $rawTrace;
     public readonly string $compactTrace;
     public readonly string $detailedTrace;
+    /** @var array<string|int, mixed> */
     public readonly array $requestData;
     public readonly string $hash;
 
@@ -36,6 +37,9 @@ final class ErrorContext
     public readonly string $memoryUsage;
     public readonly ?string $userName;
 
+    /**
+     * @param array<string|int, mixed> $sanitizedRequest
+     */
     public function __construct(
         Throwable $e,
         array $sanitizedRequest,
