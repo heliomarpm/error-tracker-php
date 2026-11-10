@@ -23,7 +23,7 @@ final class FileCache implements CacheInterface
 
         // Garante que o diretório de cache exista
         if (!is_dir($this->cacheDirectory)) {
-            mkdir($this->cacheDirectory, 0777, true);
+            @mkdir($this->cacheDirectory, 0777, true);
         }
     }
 

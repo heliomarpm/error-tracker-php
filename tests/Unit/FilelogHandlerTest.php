@@ -114,4 +114,18 @@ class FilelogHandlerTest extends TestCase
 
         $this->assertStringContainsString('Usuário:     dinamico_log_user', $entry);
     }
+
+    public function testHandlesUncreatableDirectoryWithoutEmittingWarning(): void
+    {
+        $invalidDir = PHP_OS_FAMILY === 'Windows'
+            ? 'Z:/non_existent_drive_' . uniqid() . '/logs'
+            : '/proc/sys/fs/binfmt_misc/invalid_' . uniqid() . '/logs';
+
+        $handler = new FilelogHandler($invalidDir);
+        $context = new ErrorContext(new Exception('Silent error on unwritable fs'), [], Severity::CRITICAL);
+
+        $handler->report($context);
+
+        $this->assertNotEmpty($handler->getLogFilename($context));
+    }
 }

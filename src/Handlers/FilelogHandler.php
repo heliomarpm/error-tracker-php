@@ -44,7 +44,7 @@ final class FilelogHandler implements HandlerInterface
 
     // Garante que o diretório de logs exista
     if (!is_dir($this->logDirectory)) {
-      mkdir($this->logDirectory, 0777, true);
+      @mkdir($this->logDirectory, 0777, true);
     }
   }
 
@@ -60,7 +60,7 @@ final class FilelogHandler implements HandlerInterface
     $file = $this->getLogFilename($context);
 
     // Salva preservando o UTF-8 natural do PHP com bloqueio exclusivo
-    file_put_contents($file, $logEntry . PHP_EOL, FILE_APPEND | LOCK_EX);
+    @file_put_contents($file, $logEntry . PHP_EOL, FILE_APPEND | LOCK_EX);
   }
 
   /**
