@@ -5,6 +5,14 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+# [1.2.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.1.0...v1.2.0) (2026-11-06)
+
+
+### Features
+
+* **cache:** ✨ aumentar nível de análise do PHPStan e melhorar segurança ([ce79b31](https://github.com/heliomarpm/error-tracker-php/commit/ce79b3163db8b371391bd0cb2c521f2fa308c1d2))
+* **ErrorTracker:** ✨ adicionar suporte para ignorar chamadores no backtrace ([fc2d334](https://github.com/heliomarpm/error-tracker-php/commit/fc2d33448acd9f6c27a5383b3fb14c2da774ec51))
+
 # [1.1.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.0.2...v1.1.0) (2026-10-28)
 
 
