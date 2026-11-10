@@ -1320,7 +1320,7 @@
                             Error<span class="highlight">Tracker</span>
                             <!-- <span class="tag-sandbox">Dev Sandbox</span> -->
                             <span class="versao">
-                                v1.1.0
+                                v1.1.1
                             </span>
                         </div>
                     </div>
@@ -2262,7 +2262,14 @@ try {
 
                     const contentType = res.headers.get('content-type') || '';
                     if (res.ok && contentType.includes('application/json')) {
-                        const data = await res.json();
+                        const rawText = await res.text();
+                        let data;
+                        try {
+                            data = JSON.parse(rawText);
+                        } catch (parseErr) {
+                            throw new Error(`Resposta inválida do servidor: ${rawText.replace(/<[^>]*>?/gm, '').trim().slice(0, 120)}`);
+                        }
+
                         if (data.status === 'success') {
                             return data;
                         }

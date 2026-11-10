@@ -15,6 +15,9 @@ use HeliomarPM\ErrorTracker\Handlers\WebhookHandler;
 use HeliomarPM\ErrorTracker\Severity;
 use Psr\SimpleCache\CacheInterface;
 
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -129,7 +132,10 @@ $emailTextHandler = new EmailHandler('suporte@empresa.com', format: 'text');
 $githubHandler = new GitHubIssueHandler('ghp_mock_token_demo', 'heliomarpm/error-tracker-demo');
 $slackHandler = new WebhookHandler('https://hooks.slack.com/...', format: 'slack');
 $discordHandler = new WebhookHandler('https://discord.com/api/webhooks/...', format: 'discord');
-$filelogHandler = new FilelogHandler(__DIR__ . '/storage/logs');
+$demoLogDir = is_dir(__DIR__ . '/storage/logs') && is_writable(__DIR__ . '/storage/logs')
+    ? __DIR__ . '/storage/logs'
+    : sys_get_temp_dir() . '/error-tracker-demo/logs';
+$filelogHandler = new FilelogHandler($demoLogDir);
 $sqliteMemoryPdo = new PDO('sqlite::memory:');
 $databaseHandler = new DatabaseHandler($sqliteMemoryPdo, tableName: 'error_tracker', autoCreate: true);
 
