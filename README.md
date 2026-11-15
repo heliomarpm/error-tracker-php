@@ -366,7 +366,7 @@ Obrigado a todos que já contribuíram:
 
 [![Contribuidores](https://contrib.rocks/image?repo=heliomarpm/error-tracker-php)](https://github.com/heliomarpm/error-tracker-php/graphs/contributors)
 
-###### Made with [contrib.rocks](https://contrib.rocks/image?repo=heliomarpm/error-tracker-php)
+###### Criado com [contrib.rocks](https://contrib.rocks/image?repo=heliomarpm/error-tracker-php)
 
 <!-- 
 [![Contribuidores](https://contrib.nn.ci/api?repo=heliomarpm/error-tracker-php&no_bot=true)](https://github.com/heliomarpm/error-tracker-php/graphs/contributors)
