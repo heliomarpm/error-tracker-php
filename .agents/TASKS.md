@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 26/26 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-10-27
+> **Status:** concluído | **Progresso:** 29/29 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-11-19
 
 ## Em progresso
 
@@ -16,6 +16,41 @@
 (nenhuma)
 
 ## Concluídas recentemente
+
+- [x] **T-029 · P1 · Refatorar resolução de usuário, eliminar ResolvesUserTrait e simplificar contratos de API** (2026-11-19)
+  - Arquivos: [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php) (removido), [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [ErrorContext.php](../src/ErrorContext.php), [ErrorTracker.php](../src/ErrorTracker.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [HandlerInterface.php](../src/Contracts/HandlerInterface.php), [README.md](../README.md), [HANDLERS.md](../docs/HANDLERS.md), [TEMPLATES.md](../docs/TEMPLATES.md), [index.php](../demo/index.php)
+  - Evidência: 93 testes e 299 asserções aprovados no PHPUnit (100%), eliminação de 3 camadas redundantes de resolução de user, remoção de aliases multi-idioma em `parameters()`, adição de `ErrorTracker::create()`, `register(): void` e remoção do `exit(1)` no failsafe crítico
+  - DoD:
+    - [x] Remover `ResolvesUserTrait` e parâmetros `$userName`/`$userResolver` de todos os 5 handlers
+    - [x] Unificar resolução de usuário no `ErrorTracker` e propagar diretamente no `ErrorContext`
+    - [x] Remover adivinhação mágica de `$_SESSION` e o método `resolveUserString` com reflexão de objetos
+    - [x] Simplificar `parameters()` para aceitar apenas named arguments em inglês
+    - [x] Simplificar `register()` para `register(): void` sem repetição de parâmetros
+    - [x] Adicionar factory method estático `ErrorTracker::create(...)`
+    - [x] Remover `exit(1)` hardcoded do failsafe crítico delegando controle ao callback
+    - [x] Adicionar `declare(strict_types=1)` em `HandlerInterface.php` e tornar senha privada no `SmtpTransport`
+    - [x] Atualizar documentação, playground da demo e suíte de testes unitários
+
+- [x] **T-028 · P2 · Enriquecer ErrorContext e Templates com IP do cliente, Referer e suporte a contexto SQL** (2026-11-19)
+  - Arquivos: [ErrorContext.php](../src/ErrorContext.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [email_html.tpl](../src/Templates/email_html.tpl), [email_text.tpl](../src/Templates/email_text.tpl), [filelog.tpl](../src/Templates/filelog.tpl), [ErrorContextTest.php](../tests/Unit/ErrorContextTest.php), [TemplateRendererTest.php](../tests/Unit/TemplateRendererTest.php)
+  - Evidência: 93 testes e 304 asserções aprovados no PHPUnit (100%), PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Adicionar propriedades `clientIp`, `referer`, `sqlQuery` e `sqlParams` no `ErrorContext`
+    - [x] Extrair parâmetros SQL a partir de `$sanitizedRequest['context']['sql']` ou métodos/propriedades da exceção
+    - [x] Mapear tags `{{client_ip}}`, `{{referer}}`, `{{sql}}` e `{{sql_params}}` no `TemplateRenderer` com suporte a condicionais `<!-- IF_SQL -->` e `<!-- IF_REFERER -->`
+    - [x] Atualizar templates `email_html.tpl`, `email_text.tpl` e `filelog.tpl` com cards operacionais para IP, Referer e bloco SQL
+    - [x] Adicionar testes unitários correspondentes em `ErrorContextTest` e `TemplateRendererTest`
+
+- [x] **T-027 · P1 · Implementar transporte SMTP autenticado, envelope sender, mitigação de CRLF no assunto e multipart no EmailHandler** (2026-11-19)
+  - Arquivos: [SmtpTransport.php](../src/Transports/SmtpTransport.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [SmtpTransportTest.php](../tests/Unit/SmtpTransportTest.php), [EmailHandlerTest.php](../tests/Unit/EmailHandlerTest.php)
+  - Evidência: cliente SMTP nativo zero-dependencies implementado com SSL (465) e TLS (587), envelope sender `-f` configurado, assunto higienizado contra header injection com `mb_encode_mimeheader`, formato multipart/alternative com fallback de texto puro, 93 testes e 304 asserções aprovados no PHPUnit, PHPStan 0 erros, Pint formatado
+  - DoD:
+    - [x] Criar `src/Transports/SmtpTransport.php` nativo e leve via sockets (`stream_socket_client`) com suporte a SSL/TLS e AUTH LOGIN
+    - [x] Adicionar parâmetros opcionais de conexão SMTP no construtor do `EmailHandler`
+    - [x] Implementar sanitização de quebras de linha no assunto e codificação MIME
+    - [x] Adicionar envelope sender `"-f" . $this->from` na chamada `@mail()`
+    - [x] Implementar envio multipart (`multipart/alternative`) combinando versão texto e HTML
+    - [x] Criar testes unitários para `SmtpTransport` e `EmailHandler` no PHPUnit
 
 - [x] **T-026 · P1 · Blindar playground contra Path Traversal, payload DoS e aplicar sandbox em previews** (2026-10-27)
   - Arquivos: [router.php](../demo/router.php), [api.php](../demo/api.php), [index.php](../demo/index.php)

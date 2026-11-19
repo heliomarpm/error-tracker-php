@@ -20,7 +20,7 @@
 
 ## Skills aplicáveis
 
-Stack detectada: PHP 8.1+, PDO (MySQL/MariaDB), PSR-16. Use `-tech-php`, `-sql`, `-testing` e `-git`.
+Stack detectada: PHP 8.1+, PDO (MySQL/MariaDB), PSR-16. Use `sk-tech-php`, `sk-sql`, `sk-testing` e `sk-git`.
 
 ## Antes de concluir uma tarefa
 

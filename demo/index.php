@@ -1911,13 +1911,13 @@ $tracker->onCritical(function ($context) {
 // 5. Ativa interceptadores globais de Exceptions, Errors e Fatals
 $tracker->register();
 
-// --- OU REGISTRO RÁPIDO EM UMA ÚNICA LINHA ---
-// ErrorTracker::register(
-//     handlers: [new FilelogHandler(__DIR__ . '/storage/logs')],
+// --- OU INICIALIZAÇÃO FLUENTE EM UMA ÚNICA LINHA ---
+// $tracker = ErrorTracker::create(
 //     appName: 'MeuERP',
 //     environment: 'production',
 //     userResolver: fn() => Auth::user()?->nome
-// );</pre>
+// )->addHandler(new FilelogHandler(__DIR__ . '/storage/logs'));
+// $tracker->register();</pre>
                         </div>
                     </div>
 
@@ -1933,8 +1933,8 @@ $tracker->register();
 
 use HeliomarPM\ErrorTracker\ErrorTracker;
 
-// FORMA 1: Argumentos nomeados do PHP 8.1+ (Fluente)
-$tracker->parameters(
+// FORMA 1: Factory Method estático (Inicialização limpa e fluente)
+$tracker = ErrorTracker::create(
     appName: 'PDV Hub Pro',
     environment: 'production',
     serverName: 'node-sp-01',
@@ -1942,22 +1942,17 @@ $tracker->parameters(
     extraContext: ['versao_app' => '3.4.1', 'tenant_id' => 1042]
 );
 
-// FORMA 2: Array associativo (Ideal para ler direto do .env / config.php)
-$tracker->parameters([
-    'app_name'      => $_ENV['APP_NAME'] ?? 'MeuApp',
-    'environment'   => $_ENV['APP_ENV'] ?? 'production',
-    'server_name'   => gethostname(),
-    'user_name'     => $_SESSION['auth_user'] ?? null,
-    'extra_context' => ['regiao' => 'sa-east-1']
-]);
-
-// FORMA 3: Passagem direta no método register()
-ErrorTracker::register(
-    handlers: [$dbHandler, $slackHandler, $githubHandler],
+// FORMA 2: Método parameters() com Argumentos Nomeados do PHP 8.1+
+$tracker->parameters(
     appName: 'Checkout API',
     environment: 'production',
-    userResolver: fn() => $_SESSION['usuario']['email'] ?? null
-);</pre>
+    serverName: gethostname(),
+    userResolver: fn() => $_SESSION['usuario']['email'] ?? null,
+    extraContext: ['regiao' => 'sa-east-1']
+);
+
+// Ativação dos interceptadores nativos
+$tracker->register();</pre>
                         </div>
                     </div>
 

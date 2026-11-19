@@ -69,7 +69,7 @@ Stack Trace:
 * **`<!-- IF_TRACE -->`**: Exibido apenas se for uma exceção com stack trace disponível, evitando dezenas de linhas de rastreamento desnecessárias em logs do dia a dia.
 * **`<!-- IF_ORIGIN -->`**: Exibido apenas se o arquivo e linha de origem estiverem disponíveis (ignora frames internos do logger e aponta diretamente para o código da sua aplicação).
 * **`<!-- IF_PREVIOUS -->`**: Exibido apenas se houver uma exceção encadeada (`$e->getPrevious()`). Se o erro não tiver causa anterior, todo o bloco é removido sem deixar linhas em branco.
-* **`<!-- IF_USER -->`**: Exibido apenas quando houver usuário autenticado no contexto (`user`, `user_name`, `username`) ou na sessão.
+* **`<!-- IF_USER -->`**: Exibido apenas quando houver usuário autenticado no contexto (`$context->userName`).
 * Qualquer outra tag (ex.: `<!-- IF_PAYLOAD -->`) também é suportada.
 
 ---

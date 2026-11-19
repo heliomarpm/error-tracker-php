@@ -70,89 +70,66 @@ use HeliomarPM\ErrorTracker\Handlers\EmailHandler;
 use HeliomarPM\ErrorTracker\Handlers\FilelogHandler;
 use HeliomarPM\ErrorTracker\Severity;
 
-// 1. Instancia o Cache de Arquivo (Retenção de 1 hora para deduplicação)
-$cache = new FileCache(__DIR__ . '/storage/logs/errors_cache');
-$tracker = new ErrorTracker($cache, 3600);
+// 1. Inicialização fluente e configuração em uma única expressão
+$tracker = ErrorTracker::create(
+    cache: new FileCache(__DIR__ . '/storage/logs/errors_cache'),
+    cacheTtlSeconds: 3600,
+    appName: 'Meu App',
+    environment: 'production',
+    userResolver: fn() => Auth::user()?->name ?? $_SESSION['usuario']['nome'] ?? null
+);
 
 // 2. Registra os Handlers desejados
 $pdo = new PDO("mysql:host=localhost;dbname=meu_banco", "root", "senha");
 // Ou SQLite: $pdo = new PDO("sqlite:" . __DIR__ . "/storage/errors.sqlite");
 
-$tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', true))
+$tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', autoCreate: true))
         ->addHandler(new FilelogHandler(__DIR__ . '/storage/logs'))
         ->addHandler(new WebhookHandler($_ENV['SLACK_WEBHOOK_URL'] ?? 'https://hooks.slack.com/...', format: 'slack'))
         ->addHandler(new GitHubIssueHandler($_ENV['GITHUB_TOKEN'] ?? 'github_pat_...', 'usuario/repositorio'))
-        ->addHandler(new EmailHandler('suporte@empresa.com', 'noreply@empresa.com', [Severity::CRITICAL]));
-        // Dica: Todos os handlers aceitam 'notifySeverities' (ex: [Severity::CRITICAL, Severity::WARNING])
+        ->addHandler(new EmailHandler('suporte@empresa.com', 'noreply@empresa.com', notifySeverities: [Severity::CRITICAL]));
 
-// 3. Define parâmetros globais da aplicação (propaga para todos os handlers)
-$tracker->parameters(
-    appName: 'Meu App',
-    environment: 'production',
-    userResolver: fn() => $_SESSION['usuario']['nome'] ?? Auth::user()?->name ?? null
-);
-
-// 4. Define a Rota de Fuga (Failsafe em falhas críticas)
+// 3. Define a Rota de Fuga (Failsafe em falhas críticas)
 $tracker->onCritical(function ($context) {
     header("Location: /500.php?ref={$context->hash}");
 });
 
-// 5. Ativa o escudo global (também aceita parâmetros diretamente como atalho!)
+// 4. Ativa o escudo global de interceptação nativa de Exceptions, Errors e Fatals
 $tracker->register();
-// Ou direto: $tracker->register(appName: 'Meu App', environment: 'production');
 ```
 
 ---
 
-## ⚙️ Parâmetros Globais da Aplicação (`parameters()` e `register()`)
+## ⚙️ Parâmetros Globais da Aplicação (`parameters()`)
 
-O método `parameters()` centraliza os dados compartilhados do seu ecossistema. Qualquer parâmetro definido aqui é automaticamente injetado em `ErrorContext` e aproveitado por **todos os handlers**:
+O método `parameters()` (ou o construtor / factory `ErrorTracker::create()`) centraliza os dados compartilhados do seu ecossistema. Qualquer parâmetro definido aqui é automaticamente injetado em `ErrorContext` e aproveitado por **todos os handlers**:
 
 | Parâmetro | Tipo | Descrição | Onde é aproveitado |
 | :--- | :--- | :--- | :--- |
 | `appName` | `string` | Nome da aplicação ou microsserviço | Títulos no GitHub (`[AppName~CRITICAL]`), templates de e-mail, cards de Slack/Discord e logs |
 | `environment`| `string` | Ambiente (`production`, `staging`, `dev`, etc.) | Tags de alerta, condicionais de template (`<!-- IF_PRODUCTION -->`), webhooks e cards |
 | `serverName` | `?string` | Nome do servidor ou container | Templates de e-mail, logs e payloads analíticos |
-| `userName` | `?string` | Identificador ou nome estático de usuário | Coluna `user_name` do banco, logs, e-mails e cards |
-| `userResolver`| `?callable` | Callback dinâmico chamado no instante do erro | Resolução sob demanda de sessão (`$_SESSION`) ou Auth de frameworks |
+| `userName` | `?string` | Identificador ou nome estático padrão de usuário | Coluna `user_name` do banco, logs, e-mails e cards |
+| `userResolver`| `?callable` | Callback dinâmico chamado no instante do erro | Resolução sob demanda de sessão ou autenticação do framework |
 | `extraContext`| `array` | Metadados adicionais da aplicação | Anexado a requisições e visível em todos os payloads e templates |
+| `maskedKeys`  | `array` | Chaves adicionais sensíveis para blackout | Blackout no sanitizador LGPD (`DataSanitizer`) |
 
-### 1. Usando Named Arguments (PHP 8)
+### Configuração com Named Arguments (PHP 8.1+)
 ```php
 $tracker->parameters(
     appName: 'Salvar Micro ERP',
     environment: 'production',
     serverName: 'cluster-web-01',
-    userResolver: fn() => $_SESSION['usuario']['nome'] ?? Auth::user()?->name ?? null,
+    userResolver: fn() => Auth::user()?->name ?? $_SESSION['usuario']['nome'] ?? null,
     extraContext: ['tenant_id' => 'empresa_abc']
 );
 ```
 
-### 2. Usando Array Associativo (ideal para `.env` ou configs)
-```php
-$tracker->parameters([
-    'app_name' => Env::get('APP_NAME', 'Meu App'),
-    'environment' => Env::get('APP_ENV', 'production'),
-    'user_resolver' => fn() => $_SESSION['usuario']['nome'] ?? null,
-]);
-```
-
-### 3. Atalho direto no `register()`
-Para uma inicialização ainda mais rápida no bootstrap:
-```php
-$tracker->register(
-    appName: 'Salvar Micro ERP',
-    environment: 'production',
-    userResolver: fn() => $_SESSION['usuario']['nome'] ?? null
-);
-```
-
-### 4. Detecção Automática Zero-Config de Usuário
-Mesmo sem configurar resolvers manuais, o rastreador inspeciona automaticamente `$_SESSION` e o contexto da requisição procurando por:
-* Chaves em português e inglês: `usuario`, `user`, `usuario_nome`, `user_name`, `username`, `login`, `auth.user`
-* Arrays associativos com campos `nome`, `name`, `login`, `email`, `id`
-* Objetos / Entidades de usuário com métodos `getName()`, `getNome()`, `getUserName()` ou propriedades públicas (`->nome`, `->name`, `->email`)
-* Instâncias de `Stringable`
+### Resolução Transparente de Usuário
+O rastreador resolve o usuário responsável pelo incidente seguindo uma prioridade limpa e objetiva:
+1. **Contexto da Chamada:** Se passado no context do log PSR-3: `$tracker->error('Falha', ['user' => 'ana_dev'])` ou `['username' => '...']`.
+2. **Callback Dinâmico (`userResolver`):** Invocado no momento exato do erro (ex: `fn() => Auth::user()?->name`).
+3. **Usuário Estático (`userName`):** Fallback padrão configurado no tracker.
 
 ---
 
