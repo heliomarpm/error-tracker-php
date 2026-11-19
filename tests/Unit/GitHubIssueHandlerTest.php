@@ -115,11 +115,15 @@ class GitHubIssueHandlerTest extends TestCase
     {
         $handler = new GitHubIssueHandler(
             token: 'token_mock',
-            repository: 'heliomarpm/error-tracker',
-            userResolver: fn() => 'admin_resolvido'
+            repository: 'heliomarpm/error-tracker'
         );
 
-        $context = $this->createContext('Erro com usuario');
+        $context = new ErrorContext(
+            new Exception('Erro com usuario'),
+            [],
+            Severity::CRITICAL,
+            userName: 'admin_resolvido'
+        );
         $body = $handler->renderBody($context);
         $comment = $handler->renderComment($context);
 

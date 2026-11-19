@@ -116,13 +116,12 @@ final class DatabaseHandlerTest extends TestCase
         $this->assertSame(1, (int)$stmt->fetchColumn());
     }
 
-    public function testUsesHandlerUserNameFallbackWhenContextHasNoUser(): void
+    public function testPersistsNullWhenContextHasNoUser(): void
     {
         $handler = new DatabaseHandler(
             $this->pdo,
             tableName: 'test_errors_fallback',
-            autoCreate: true,
-            userName: 'operador_default'
+            autoCreate: true
         );
 
         $context = new ErrorContext(new Exception('Erro sem user no context'), [], Severity::CRITICAL);
@@ -130,20 +129,18 @@ final class DatabaseHandlerTest extends TestCase
 
         $stmt = $this->pdo->query('SELECT user_name FROM test_errors_fallback WHERE hash = ' . $this->pdo->quote($context->hash));
         $this->assertNotFalse($stmt);
-        $this->assertSame('operador_default', $stmt->fetchColumn());
+        $this->assertNull($stmt->fetchColumn());
     }
 
-    public function testUsesHandlerUserResolverFallbackWhenContextHasNoUser(): void
+    public function testPersistsContextUserNameDirectly(): void
     {
-        $currentUser = 'usuario_sessao_123';
         $handler = new DatabaseHandler(
             $this->pdo,
             tableName: 'test_errors_resolver',
-            autoCreate: true,
-            userResolver: fn() => $currentUser
+            autoCreate: true
         );
 
-        $context = new ErrorContext(new Exception('Erro dinâmico sem user'), [], Severity::CRITICAL);
+        $context = new ErrorContext(new Exception('Erro com user'), [], Severity::CRITICAL, userName: 'usuario_sessao_123');
         $handler->report($context);
 
         $stmt = $this->pdo->query('SELECT user_name FROM test_errors_resolver WHERE hash = ' . $this->pdo->quote($context->hash));

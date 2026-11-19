@@ -101,6 +101,33 @@ final class ErrorTracker implements LoggerInterface
   }
 
   /**
+   * Factory method para inicialização fluente e de fácil implementação.
+   */
+  public static function create(
+      ?CacheInterface $cache = null,
+      int $cacheTtlSeconds = 3600,
+      ?string $userName = null,
+      ?callable $userResolver = null,
+      string $appName = 'ErrorTracker',
+      string $environment = 'production',
+      ?string $serverName = null,
+      array $extraContext = [],
+      array $maskedKeys = []
+  ): self {
+    return new self(
+        cache: $cache,
+        cacheTtlSeconds: $cacheTtlSeconds,
+        userName: $userName,
+        userResolver: $userResolver,
+        appName: $appName,
+        environment: $environment,
+        serverName: $serverName,
+        extraContext: $extraContext,
+        maskedKeys: $maskedKeys
+    );
+  }
+
+  /**
    * Restaura os tratadores nativos de erro e exceção do PHP.
    */
   public static function unregister(): void
@@ -110,33 +137,25 @@ final class ErrorTracker implements LoggerInterface
   }
 
   /**
-   * Define ou atualiza os parâmetros globais da aplicação compartilhados com todos os handlers.
-   * Suporta named arguments (PHP 8) ou um array associativo de parâmetros.
+   * Define ou atualiza os parâmetros globais da aplicação compartilhados com todos os handlers via Named Arguments.
    *
-   * Exemplo com Named Arguments:
+   * Exemplo:
    *   $tracker->parameters(
-   *       appName: 'Salvar ERP',
+   *       appName: 'ERP Sistema',
    *       environment: 'production',
    *       userResolver: fn() => $_SESSION['usuario']['nome'] ?? null
    *   );
    *
-   * Exemplo com Array Associativo:
-   *   $tracker->parameters([
-   *       'app_name' => 'Salvar ERP',
-   *       'environment' => 'staging',
-   *       'user_name' => 'admin',
-   *   ]);
-   *
-   * @param array<string, mixed>|string|null $appName Nome da aplicação ou array de parâmetros.
+   * @param string|null $appName Nome da aplicação.
    * @param string|null $environment Ambiente de execução (production, staging, dev, etc.).
    * @param string|null $serverName Nome do host/servidor.
-   * @param string|null $userName Nome ou identificador estático do usuário.
-   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolver o usuário.
+   * @param string|null $userName Nome ou identificador estático do usuário padrão.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolver o usuário ativo.
    * @param array<string, mixed> $extraContext Metadados extras compartilhados.
    * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout.
    */
   public function parameters(
-      array|string|null $appName = null,
+      ?string $appName = null,
       ?string $environment = null,
       ?string $serverName = null,
       ?string $userName = null,
@@ -144,44 +163,6 @@ final class ErrorTracker implements LoggerInterface
       array $extraContext = [],
       array $maskedKeys = []
   ): self {
-    if (is_array($appName)) {
-      $params = $appName;
-      if (isset($params['app_name']) || isset($params['appName']) || isset($params['application'])) {
-        $this->appName = (string)($params['app_name'] ?? ($params['appName'] ?? $params['application']));
-      }
-      if (isset($params['environment']) || isset($params['env']) || isset($params['ambiente'])) {
-        $this->environment = (string)($params['environment'] ?? ($params['env'] ?? $params['ambiente']));
-      }
-      if (isset($params['server_name']) || isset($params['serverName']) || isset($params['server']) || isset($params['host'])) {
-        $this->serverName = (string)($params['server_name'] ?? ($params['serverName'] ?? ($params['server'] ?? $params['host'])));
-      }
-      if (isset($params['user_name']) || isset($params['userName']) || isset($params['user']) || isset($params['usuario'])) {
-        $this->userName = (string)($params['user_name'] ?? ($params['userName'] ?? ($params['user'] ?? $params['usuario'])));
-      }
-      if (isset($params['user_resolver']) && is_callable($params['user_resolver'])) {
-        $this->userResolver = $params['user_resolver'];
-      } elseif (isset($params['userResolver']) && is_callable($params['userResolver'])) {
-        $this->userResolver = $params['userResolver'];
-      }
-      if (isset($params['extra_context']) && is_array($params['extra_context'])) {
-        $this->extraContext = array_merge($this->extraContext, $params['extra_context']);
-      } elseif (isset($params['extraContext']) && is_array($params['extraContext'])) {
-        $this->extraContext = array_merge($this->extraContext, $params['extraContext']);
-      } elseif (isset($params['context']) && is_array($params['context'])) {
-        $this->extraContext = array_merge($this->extraContext, $params['context']);
-      }
-      if (isset($params['masked_keys']) && is_array($params['masked_keys'])) {
-        /** @var string[] $keys */
-        $keys = $params['masked_keys'];
-        $this->sanitizer->addMaskedKeys($keys);
-      } elseif (isset($params['maskedKeys']) && is_array($params['maskedKeys'])) {
-        /** @var string[] $keys */
-        $keys = $params['maskedKeys'];
-        $this->sanitizer->addMaskedKeys($keys);
-      }
-      return $this;
-    }
-
     if ($appName !== null) {
       $this->appName = $appName;
     }
@@ -360,29 +341,11 @@ final class ErrorTracker implements LoggerInterface
   }
 
   /**
-   * Assume o controle das funções nativas de tratamento de erro do PHP e opcionalmente define parâmetros globais.
-   *
-   * @param array<string, mixed>|string|null $appName Nome da aplicação ou array associativo de parâmetros.
-   * @param string|null $environment Ambiente de execução.
-   * @param string|null $serverName Nome do servidor/host.
-   * @param string|null $userName Nome do usuário padrão.
-   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico de usuário.
-   * @param array<string, mixed> $extraContext Metadados adicionais compartilhados.
-   * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout.
+   * Assume o controle dos tratadores nativos de erro e exceção do PHP.
+   * As configurações e parâmetros devem ser definidos no construtor ou via parameters().
    */
-  public function register(
-      array|string|null $appName = null,
-      ?string $environment = null,
-      ?string $serverName = null,
-      ?string $userName = null,
-      ?callable $userResolver = null,
-      array $extraContext = [],
-      array $maskedKeys = []
-  ): void {
-    if ($appName !== null || $environment !== null || $serverName !== null || $userName !== null || $userResolver !== null || !empty($extraContext) || !empty($maskedKeys)) {
-      $this->parameters($appName, $environment, $serverName, $userName, $userResolver, $extraContext, $maskedKeys);
-    }
-
+  public function register(): void
+  {
     error_reporting(E_ALL);
     set_exception_handler([$this, "handleException"]);
     set_error_handler([$this, "handleError"]);
@@ -545,12 +508,10 @@ final class ErrorTracker implements LoggerInterface
     $requestData = $this->sanitizer->sanitize($rawRequest);
 
     // 2. Constrói o DTO que agrupa todas as informações (incluindo o Hash MD5)
-    $resolvedUser = $mergedContext['userName']
+    $resolvedUser = $mergedContext['user']
+        ?? $mergedContext['userName']
         ?? $mergedContext['user_name']
         ?? $mergedContext['username']
-        ?? $mergedContext['user']
-        ?? $mergedContext['usuario']
-        ?? $mergedContext['usuario_nome']
         ?? null;
 
     if ($resolvedUser === null && $this->userResolver !== null) {
@@ -608,15 +569,16 @@ final class ErrorTracker implements LoggerInterface
   }
 
   /**
-   * Aciona o callback final e mata a aplicação se a integridade foi comprometida.
+   * Aciona o callback de emergência quando a severidade é CRÍTICA.
+   *
+   * O callback recebe o ErrorContext e tem total controle sobre a resposta:
+   * pode redirecionar, retornar JSON de erro ou chamar exit() explicitamente.
+   * A decisão de encerrar o processo fica a cargo do consumidor.
    */
   private function triggerCriticalFailsafe(ErrorContext $context, Severity $severity): void
   {
     if ($severity === Severity::CRITICAL && $this->onCriticalCallback !== null) {
       call_user_func($this->onCriticalCallback, $context);
-
-      // Força a parada do servidor para evitar estragos em banco de dados ou views corrompidas
-      exit(1);
     }
   }
 

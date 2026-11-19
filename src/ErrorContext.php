@@ -36,6 +36,10 @@ final class ErrorContext
     public readonly string $phpVersion;
     public readonly string $memoryUsage;
     public readonly ?string $userName;
+    public readonly string $clientIp;
+    public readonly ?string $referer;
+    public readonly ?string $sqlQuery;
+    public readonly ?string $sqlParams;
 
     /**
      * @param array<string|int, mixed> $sanitizedRequest
@@ -79,6 +83,24 @@ final class ErrorContext
         $env = !empty($environment) ? $environment : (getenv('APP_ENV') ?: (getenv('ENVIRONMENT') ?: 'production'));
         $this->environment = is_string($env) ? $env : 'production';
         $this->phpVersion = PHP_VERSION;
+        $this->clientIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $this->referer = $_SERVER['HTTP_REFERER'] ?? null;
+
+        // Extrai metadados SQL se disponíveis no context
+        $ctx = $sanitizedRequest['context'] ?? [];
+        $sql = null;
+        $sqlParams = null;
+
+        if (is_array($ctx)) {
+            $sql = $ctx['sql'] ?? null;
+            $rawParams = $ctx['sql_params'] ?? null;
+            if ($rawParams !== null) {
+                $sqlParams = is_string($rawParams) ? $rawParams : (json_encode($rawParams, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null);
+            }
+        }
+
+        $this->sqlQuery = is_string($sql) && trim($sql) !== '' ? trim($sql) : null;
+        $this->sqlParams = $sqlParams;
 
         $bytes = memory_get_peak_usage(true);
         if ($bytes >= 1048576) {
@@ -89,103 +111,21 @@ final class ErrorContext
             $this->memoryUsage = $bytes . ' B';
         }
 
-        // Resolução do nome do usuário autenticado ou no contexto
-        $resolvedUser = self::resolveUserString($userName);
-
+        // Atribuição do usuário: prioriza o parâmetro direto e depois o context fornecido
+        $resolvedUser = $userName;
         if ($resolvedUser === null && isset($sanitizedRequest['context']) && is_array($sanitizedRequest['context'])) {
-            $ctxUser = $sanitizedRequest['context']['userName']
+            $ctxUser = $sanitizedRequest['context']['user']
+                ?? $sanitizedRequest['context']['userName']
                 ?? $sanitizedRequest['context']['user_name']
                 ?? $sanitizedRequest['context']['username']
-                ?? $sanitizedRequest['context']['user']
-                ?? $sanitizedRequest['context']['usuario']
-                ?? $sanitizedRequest['context']['usuario_nome']
                 ?? null;
-            $resolvedUser = self::resolveUserString($ctxUser);
+            if (is_string($ctxUser) || is_numeric($ctxUser) || $ctxUser instanceof Stringable) {
+                $resolvedUser = trim((string)$ctxUser);
+            }
         }
-
-        if ($resolvedUser === null && isset($_SESSION)) {
-            $sessUser = $_SESSION['userName']
-                ?? $_SESSION['user_name']
-                ?? $_SESSION['username']
-                ?? $_SESSION['usuario_nome']
-                ?? $_SESSION['nome_usuario']
-                ?? $_SESSION['login']
-                ?? ($_SESSION['user'] ?? ($_SESSION['usuario'] ?? null))
-                ?? ($_SESSION['auth']['user'] ?? ($_SESSION['auth']['usuario'] ?? ($_SESSION['auth']['name'] ?? ($_SESSION['auth']['nome'] ?? null))))
-                ?? null;
-
-            $resolvedUser = self::resolveUserString($sessUser);
-        }
-
-        $this->userName = $resolvedUser;
+        $this->userName = is_string($resolvedUser) && trim($resolvedUser) !== '' ? trim($resolvedUser) : null;
 
         // O segredo da deduplicação: Um hash único para este erro exato
         $this->hash = md5($this->file . $this->line . $this->message);
-    }
-
-    /**
-     * Extrai com segurança uma representação em string do usuário a partir de diversos tipos
-     * (string, Stringable, int, array associativo ou entidade/objeto).
-     */
-    public static function resolveUserString(mixed $user): ?string
-    {
-        if ($user === null) {
-            return null;
-        }
-
-        if (is_string($user) || is_numeric($user)) {
-            $trimmed = trim((string)$user);
-            return $trimmed !== '' ? $trimmed : null;
-        }
-
-        if ($user instanceof Stringable) {
-            $trimmed = trim((string)$user);
-            return $trimmed !== '' ? $trimmed : null;
-        }
-
-        if (is_array($user)) {
-            $val = $user['userName']
-                ?? $user['user_name']
-                ?? $user['username']
-                ?? $user['nome']
-                ?? $user['name']
-                ?? $user['login']
-                ?? $user['email']
-                ?? $user['user']
-                ?? $user['usuario']
-                ?? $user['id']
-                ?? null;
-
-            return self::resolveUserString($val);
-        }
-
-        if (is_object($user)) {
-            if (method_exists($user, 'getName')) {
-                $name = $user->getName();
-                if ($name !== null && $name !== '') {
-                    return (string)$name;
-                }
-            }
-            if (method_exists($user, 'getNome')) {
-                $nome = $user->getNome();
-                if ($nome !== null && $nome !== '') {
-                    return (string)$nome;
-                }
-            }
-            if (method_exists($user, 'getUserName')) {
-                $u = $user->getUserName();
-                if ($u !== null && $u !== '') {
-                    return (string)$u;
-                }
-            }
-
-            foreach (['userName', 'user_name', 'username', 'nome', 'name', 'login', 'email', 'user', 'usuario', 'id'] as $prop) {
-                if (isset($user->{$prop}) && !empty($user->{$prop})) {
-                    return (string)$user->{$prop};
-                }
-            }
-        }
-
-        return null;
     }
 }

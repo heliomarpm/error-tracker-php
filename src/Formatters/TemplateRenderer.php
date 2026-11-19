@@ -87,23 +87,22 @@ final class TemplateRenderer
 
             // Contexto da Requisição e Ambiente
             'app_name' => $context->appName,
-            'appName' => $context->appName,
-            'application' => $context->appName,
             'environment' => $context->environment,
-            'ambiente' => $context->environment,
-            'env' => $context->environment,
             'request_method' => $context->requestMethod,
-            'method' => $context->requestMethod,
             'request_uri' => $context->requestUri,
-            'uri' => $context->requestUri,
             'server_name' => $context->serverName,
-            'server' => $context->serverName,
             'php_version' => $context->phpVersion,
             'memory_usage' => $context->memoryUsage,
-            'memory' => $context->memoryUsage,
-            'usuario_nome' => (string)($context->userName ?? 'Anônimo / Não autenticado'),
             'user' => (string)($context->userName ?? 'Anônimo / Não autenticado'),
-            'user_name' => (string)($context->userName ?? 'Anônimo / Não autenticado'),
+            'usuario_nome' => (string)($context->userName ?? 'Anônimo / Não autenticado'),
+
+            // IP e Referer
+            'client_ip' => $context->clientIp,
+            'referer' => (string)($context->referer ?? ''),
+
+            // Metadados SQL
+            'sql' => (string)($context->sqlQuery ?? ''),
+            'sql_params' => (string)($context->sqlParams ?? ''),
 
             // Payload Sanitizado
             'payload' => $payloadJson,
@@ -144,16 +143,16 @@ final class TemplateRenderer
                         'PREVIOUS' => !empty($tags['previous_class']) || !empty($tags['previous_message']),
                         'USER', 'USUARIO', 'USUARIO_NOME' => ($context->userName !== null && $context->userName !== '')
                             || (!empty($tags['user']) && $tags['user'] !== 'Anônimo / Não autenticado')
-                            || (!empty($tags['usuario_nome']) && $tags['usuario_nome'] !== 'Anônimo / Não autenticado')
-                            || (!empty($tags['user_name']) && $tags['user_name'] !== 'Anônimo / Não autenticado'),
-                        'EXCEPTION', 'IS_EXCEPTION' => $context->isException,
-                        'NOT_EXCEPTION', 'MESSAGE_ONLY', 'IS_MESSAGE' => !$context->isException,
-                        'TRACE', 'STACK_TRACE', 'HAS_TRACE' => $context->isException && !empty($tags['trace']),
-                        'APP_NAME', 'APPLICATION' => !empty($tags['app_name']) || !empty($context->appName),
-                        'ENVIRONMENT', 'AMBIENTE', 'ENV' => !empty($tags['environment']) || !empty($context->environment),
-                        'PRODUCTION', 'PROD', 'ENV_PROD' => in_array(strtolower($context->environment), ['production', 'prod'], true),
-                        'STAGING', 'ENV_STAGING' => in_array(strtolower($context->environment), ['staging', 'stage'], true),
-                        'DEVELOPMENT', 'DEV', 'ENV_DEV', 'LOCAL' => in_array(strtolower($context->environment), ['development', 'dev', 'local'], true),
+                            || (!empty($tags['usuario_nome']) && $tags['usuario_nome'] !== 'Anônimo / Não autenticado'),
+                        'EXCEPTION' => $context->isException,
+                        'NOT_EXCEPTION', 'MESSAGE_ONLY' => !$context->isException,
+                        'TRACE', 'STACK_TRACE' => $context->isException && !empty($tags['stack_trace']),
+                        'PRODUCTION' => in_array(strtolower($context->environment), ['production', 'prod'], true),
+                        'STAGING' => in_array(strtolower($context->environment), ['staging', 'stage'], true),
+                        'DEVELOPMENT', 'DEV', 'LOCAL' => in_array(strtolower($context->environment), ['development', 'dev', 'local'], true),
+                        'SQL' => !empty($context->sqlQuery),
+                        'SQL_PARAMS' => !empty($context->sqlParams),
+                        'REFERER' => !empty($context->referer),
                         default => !empty($tags[strtolower($cond)] ?? '') || !empty($tags[$cond] ?? ''),
                     };
 

@@ -7,13 +7,10 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
-use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
-use Stringable;
 
 final class GitHubIssueHandler implements HandlerInterface
 {
-  use ResolvesUserTrait;
   private TemplateRenderer $renderer;
   private string $bodyTemplatePath;
   private string $commentTemplatePath;
@@ -29,8 +26,6 @@ final class GitHubIssueHandler implements HandlerInterface
    * @param int $timeoutSeconds Timeout da requisição cURL em segundos.
    * @param bool $deduplicateOpenIssues Se true, busca issue aberta com o mesmo hash e adiciona comentário em vez de duplicar.
    * @param (callable(ErrorContext): string)|null $bodyFormatter Formatador customizado para o corpo da issue em Markdown.
-   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
-   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    * @param string|null $bodyTemplateOrPath Caminho do arquivo ou string de template customizado para o corpo da issue.
    * @param string|null $commentTemplateOrPath Caminho do arquivo ou string de template customizado para comentários de reincidência.
    */
@@ -42,8 +37,6 @@ final class GitHubIssueHandler implements HandlerInterface
       private readonly int $timeoutSeconds = 3,
       private readonly bool $deduplicateOpenIssues = true,
       ?callable $bodyFormatter = null,
-      private readonly ?string $userName = null,
-      private $userResolver = null,
       ?string $bodyTemplateOrPath = null,
       ?string $commentTemplateOrPath = null
   ) {
@@ -127,12 +120,6 @@ final class GitHubIssueHandler implements HandlerInterface
   private function resolveExtraTags(ErrorContext $context): array
   {
     $extraTags = [];
-    $userName = $this->resolveUser($context);
-    if ($userName !== null) {
-      $extraTags['usuario_nome'] = $userName;
-      $extraTags['user'] = $userName;
-      $extraTags['user_name'] = $userName;
-    }
 
     $appName = !empty($context->appName) && $context->appName !== 'ErrorTracker'
         ? $context->appName

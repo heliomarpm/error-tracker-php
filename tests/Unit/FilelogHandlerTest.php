@@ -88,31 +88,28 @@ class FilelogHandlerTest extends TestCase
         $this->assertSame('JSON: Custom formatted', $entry);
     }
 
-    public function testUsesHandlerUserNameFallbackInRenderEntry(): void
+    public function testRendersContextUserNameInRenderEntry(): void
     {
         $handler = new FilelogHandler(
-            logDirectory: $this->tempLogDir,
-            userName: 'operador_log'
+            logDirectory: $this->tempLogDir
         );
 
-        $context = new ErrorContext(new Exception('Erro sem user'), [], Severity::CRITICAL);
+        $context = new ErrorContext(new Exception('Erro com user'), [], Severity::CRITICAL, userName: 'operador_log');
         $entry = $handler->renderEntry($context);
 
         $this->assertStringContainsString('Usuário:     operador_log', $entry);
     }
 
-    public function testUsesHandlerUserResolverFallbackInRenderEntry(): void
+    public function testRendersAnonymousWhenContextHasNoUserInRenderEntry(): void
     {
-        $activeUser = 'dinamico_log_user';
         $handler = new FilelogHandler(
-            logDirectory: $this->tempLogDir,
-            userResolver: fn() => $activeUser
+            logDirectory: $this->tempLogDir
         );
 
-        $context = new ErrorContext(new Exception('Erro dinâmico sem user'), [], Severity::CRITICAL);
+        $context = new ErrorContext(new Exception('Erro sem user'), [], Severity::CRITICAL);
         $entry = $handler->renderEntry($context);
 
-        $this->assertStringContainsString('Usuário:     dinamico_log_user', $entry);
+        $this->assertStringContainsString('Usuário:     Anônimo / Não autenticado', $entry);
     }
 
     public function testHandlesUncreatableDirectoryWithoutEmittingWarning(): void

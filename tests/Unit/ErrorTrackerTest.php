@@ -285,16 +285,16 @@ final class ErrorTrackerTest extends TestCase
         $this->assertSame(['tenant_id' => 'empresa_123'], $params['extraContext']);
     }
 
-    public function testConfiguresParametersWithAssociativeArray(): void
+    public function testCreatesInstanceViaFactoryMethod(): void
     {
-        $tracker = new ErrorTracker($this->cache);
-        $tracker->parameters([
-            'app_name' => 'API Gateway',
-            'environment' => 'production',
-            'server_name' => 'aws-ec2-01',
-            'user_name' => 'devops_user',
-            'extra_context' => ['version' => '2.1.0'],
-        ]);
+        $tracker = ErrorTracker::create(
+            cache: $this->cache,
+            appName: 'API Gateway',
+            environment: 'production',
+            serverName: 'aws-ec2-01',
+            userName: 'devops_user',
+            extraContext: ['version' => '2.1.0']
+        );
 
         $params = $tracker->getParameters();
         $this->assertSame('API Gateway', $params['appName']);
@@ -337,13 +337,10 @@ final class ErrorTrackerTest extends TestCase
         $this->assertSame('abcdef', $reportedContext->requestData['context']['commit'] ?? null);
     }
 
-    public function testRegisterAcceptsParametersAndSetsUpHandlers(): void
+    public function testRegisterSetsUpHandlers(): void
     {
-        $tracker = new ErrorTracker($this->cache);
-        $tracker->register(
-            appName: 'App No Register',
-            environment: 'testing'
-        );
+        $tracker = new ErrorTracker($this->cache, appName: 'App No Register', environment: 'testing');
+        $tracker->register();
 
         $this->assertSame('App No Register', $tracker->getAppName());
         $this->assertSame('testing', $tracker->getEnvironment());
@@ -431,9 +428,9 @@ final class ErrorTrackerTest extends TestCase
     public function testCustomMaskedKeysConfiguredViaParameters(): void
     {
         $tracker = new ErrorTracker($this->cache);
-        $tracker->parameters([
-            'masked_keys' => ['chave_pix', 'cvv_cartao'],
-        ]);
+        $tracker->parameters(
+            maskedKeys: ['chave_pix', 'cvv_cartao']
+        );
 
         $reportedContext = null;
         $handler = new class (function (ErrorContext $c) use (&$reportedContext) {

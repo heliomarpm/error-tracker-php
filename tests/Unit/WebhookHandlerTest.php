@@ -63,14 +63,18 @@ class WebhookHandlerTest extends TestCase
         $handler->report($context);
     }
 
-    public function testResolvesUserFallbackInWebhookPayload(): void
+    public function testResolvesUserInWebhookPayload(): void
     {
         $handler = new WebhookHandler(
             'https://hooks.slack.com/services/mock',
-            format: 'slack',
-            userResolver: fn() => 'usuario_webhook_dyn'
+            format: 'slack'
         );
-        $context = $this->createContext('Erro com usuario fallback');
+        $context = new ErrorContext(
+            new Exception('Erro com usuario'),
+            ['order_id' => 'PED-1234'],
+            Severity::CRITICAL,
+            userName: 'usuario_webhook_dyn'
+        );
         $payload = $handler->buildPayload($context);
 
         $fields = $payload['attachments'][0]['fields'] ?? [];

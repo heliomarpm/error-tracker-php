@@ -7,13 +7,10 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
-use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
-use Stringable;
 
 final class FilelogHandler implements HandlerInterface
 {
-  use ResolvesUserTrait;
   private string $logDirectory;
   private string $templatePath;
   private TemplateRenderer $renderer;
@@ -26,16 +23,12 @@ final class FilelogHandler implements HandlerInterface
    * @param string|null $templateOrPath Caminho do arquivo de template ou string customizada.
    * @param array<Severity>|null $notifySeverities Níveis de severidade que gravam log (null grava todas).
    * @param (callable(ErrorContext): string)|null $formatter Callback customizado para formatação.
-   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
-   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       string $logDirectory,
       ?string $templateOrPath = null,
       private readonly ?array $notifySeverities = null,
-      ?callable $formatter = null,
-      private readonly ?string $userName = null,
-      private $userResolver = null
+      ?callable $formatter = null
   ) {
     $this->logDirectory = rtrim($logDirectory, '/\\');
     $this->templatePath = $templateOrPath ?? dirname(__DIR__) . '/Templates/filelog.tpl';
@@ -72,15 +65,7 @@ final class FilelogHandler implements HandlerInterface
       return ($this->formatter)($context);
     }
 
-    $extraTags = [];
-    $userName = $this->resolveUser($context);
-    if ($userName !== null) {
-      $extraTags['usuario_nome'] = $userName;
-      $extraTags['user'] = $userName;
-      $extraTags['user_name'] = $userName;
-    }
-
-    return $this->renderer->render($this->templatePath, $context, $extraTags);
+    return $this->renderer->render($this->templatePath, $context);
   }
 
   /**

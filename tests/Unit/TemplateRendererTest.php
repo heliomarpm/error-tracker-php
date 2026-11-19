@@ -204,4 +204,28 @@ final class TemplateRendererTest extends TestCase
 
         @unlink($tempFile);
     }
+
+    public function testRendersClientIpRefererAndSqlConditionals(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.42';
+        $_SERVER['HTTP_REFERER'] = 'https://portal.example.com';
+
+        $context = new ErrorContext(
+            new Exception('Falha ao inserir item'),
+            [
+                'context' => [
+                    'sql' => 'INSERT INTO tb_itens (id) VALUES (1)',
+                    'sql_params' => ['id' => 1],
+                ],
+            ]
+        );
+
+        $template = "IP: {{client_ip}}<!-- IF_REFERER --> | REF: {{referer}}<!-- /IF_REFERER --><!-- IF_SQL --> | SQL: {{sql}} ({{sql_params}})<!-- /IF_SQL -->";
+        $rendered = $this->renderer->render($template, $context);
+
+        $this->assertStringContainsString('IP: 10.0.0.42', $rendered);
+        $this->assertStringContainsString('REF: https://portal.example.com', $rendered);
+        $this->assertStringContainsString('SQL: INSERT INTO tb_itens (id) VALUES (1)', $rendered);
+        $this->assertStringContainsString('"id":1', $rendered);
+    }
 }

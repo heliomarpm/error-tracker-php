@@ -6,13 +6,10 @@ namespace HeliomarPM\ErrorTracker\Handlers;
 
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
-use HeliomarPM\ErrorTracker\Handlers\Traits\ResolvesUserTrait;
 use HeliomarPM\ErrorTracker\Severity;
-use Stringable;
 
 final class WebhookHandler implements HandlerInterface
 {
-  use ResolvesUserTrait;
   /** @var (callable(ErrorContext): array<string, mixed>)|null */
   private $payloadFormatter = null;
 
@@ -22,17 +19,13 @@ final class WebhookHandler implements HandlerInterface
    * @param string $format Formato do payload: 'slack', 'discord' ou 'generic'.
    * @param int $timeoutSeconds Timeout da requisição em segundos.
    * @param (callable(ErrorContext): array<string, mixed>)|null $payloadFormatter Callback customizado de formatação.
-   * @param string|null $userName Nome ou identificador estático do usuário padrão para este handler.
-   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolução do usuário neste handler.
    */
   public function __construct(
       private readonly string $webhookUrl,
       private readonly ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'generic',
       private readonly int $timeoutSeconds = 3,
-      ?callable $payloadFormatter = null,
-      private readonly ?string $userName = null,
-      private $userResolver = null
+      ?callable $payloadFormatter = null
   ) {
     $this->payloadFormatter = $payloadFormatter;
   }
@@ -64,7 +57,7 @@ final class WebhookHandler implements HandlerInterface
       return ($this->payloadFormatter)($context);
     }
 
-    $userName = $this->resolveUser($context);
+    $userName = $context->userName;
 
     $appLabel = $context->appName . ($context->environment !== 'production' ? " [{$context->environment}]" : '');
 

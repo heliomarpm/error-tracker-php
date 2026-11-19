@@ -36,64 +36,94 @@ final class ErrorContextTest extends TestCase
         $this->assertSame('usuario_stringable', $context->userName);
     }
 
-    public function testResolvesUserFromPortugueseArrayInSession(): void
+    public function testResolvesUserFromDirectParameter(): void
     {
-        $_SESSION = [
-            'usuario' => [
-                'id' => 42,
-                'nome' => 'Heliomar Dev',
-                'login' => 'heliomar_dev',
-                'email' => 'dev@example.com',
-            ],
-        ];
+        $context = new ErrorContext(
+            new Exception('Erro teste'),
+            [],
+            Severity::CRITICAL,
+            userName: 'usuario_direto'
+        );
 
-        $context = new ErrorContext(new Exception('Erro com sessão em pt-br'), []);
+        $this->assertSame('usuario_direto', $context->userName);
+    }
+
+    public function testResolvesUserFromContextArray(): void
+    {
+        $context = new ErrorContext(
+            new Exception('Erro teste context'),
+            [
+                'context' => [
+                    'user' => 'Heliomar Dev',
+                ],
+            ]
+        );
+
         $this->assertSame('Heliomar Dev', $context->userName);
     }
 
-    public function testResolvesUserFromSessionRootKeys(): void
+    public function testResolvesUserFromContextUsernameKey(): void
     {
-        $_SESSION = [
-            'usuario_nome' => 'Maria Silva',
-        ];
+        $context = new ErrorContext(
+            new Exception('Erro teste context'),
+            [
+                'context' => [
+                    'username' => 'heliomar_dev',
+                ],
+            ]
+        );
 
-        $context = new ErrorContext(new Exception('Erro raiz'), []);
-        $this->assertSame('Maria Silva', $context->userName);
+        $this->assertSame('heliomar_dev', $context->userName);
     }
 
-    public function testResolvesUserFromSessionObject(): void
+    public function testDirectParameterOverridesContextUser(): void
     {
-        $userObj = new class () {
-            public string $nome = 'Carlos Gerente';
-        };
+        $context = new ErrorContext(
+            new Exception('Erro teste'),
+            [
+                'context' => [
+                    'user' => 'user_context',
+                ],
+            ],
+            userName: 'user_direto'
+        );
 
-        $_SESSION = [
-            'usuario' => $userObj,
-        ];
-
-        $context = new ErrorContext(new Exception('Erro objeto'), []);
-        $this->assertSame('Carlos Gerente', $context->userName);
+        $this->assertSame('user_direto', $context->userName);
     }
 
-    public function testResolvesUserFromNestedAuthSession(): void
+    public function testUserNameIsNullWhenNotProvided(): void
     {
-        $_SESSION = [
-            'auth' => [
-                'user' => [
-                    'name' => 'Admin Autenticado',
+        $context = new ErrorContext(new Exception('Erro sem user'), []);
+        $this->assertNull($context->userName);
+    }
+
+    public function testCapturesClientIpAndReferer(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.195';
+        $_SERVER['HTTP_REFERER'] = 'https://app.example.com/checkout';
+
+        $context = new ErrorContext(new Exception('Erro com IP e Referer'), []);
+
+        $this->assertSame('203.0.113.195', $context->clientIp);
+        $this->assertSame('https://app.example.com/checkout', $context->referer);
+    }
+
+    public function testExtractsSqlAndParamsFromRequestContext(): void
+    {
+        $requestData = [
+            'context' => [
+                'sql' => 'INSERT INTO tb_itens_venda (id_venda, id_prod) VALUES (:venda, :prod)',
+                'sql_params' => [
+                    'venda' => 104117,
+                    'prod' => 3162,
                 ],
             ],
         ];
 
-        $context = new ErrorContext(new Exception('Erro auth'), []);
-        $this->assertSame('Admin Autenticado', $context->userName);
-    }
+        $context = new ErrorContext(new Exception('Erro SQL'), $requestData);
 
-    public function testResolveUserStringReturnsNullForInvalidTypes(): void
-    {
-        $this->assertNull(ErrorContext::resolveUserString(null));
-        $this->assertNull(ErrorContext::resolveUserString('   '));
-        $this->assertNull(ErrorContext::resolveUserString([]));
-        $this->assertNull(ErrorContext::resolveUserString(new class () {}));
+        $this->assertSame('INSERT INTO tb_itens_venda (id_venda, id_prod) VALUES (:venda, :prod)', $context->sqlQuery);
+        $this->assertNotNull($context->sqlParams);
+        $this->assertStringContainsString('104117', $context->sqlParams);
     }
 }
