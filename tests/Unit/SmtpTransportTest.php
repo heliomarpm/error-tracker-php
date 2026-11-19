@@ -50,8 +50,8 @@ final class SmtpTransportTest extends TestCase
 
     public function testSendFailsGracefullyOnInvalidHost(): void
     {
-        // Conexão em porta inexistente com timeout reduzido para não travar o teste
-        $transport = new SmtpTransport("127.0.0.1", 99999, "user", "pass", "ssl", 1);
+        // Conexão em porta fechada com timeout reduzido para não travar o teste
+        $transport = new SmtpTransport("127.0.0.1", 25252, "user", "pass", "ssl", 1);
         $result = $transport->send("from@example.com", "to@example.com", "Subject", "Body");
 
         $this->assertFalse($result);

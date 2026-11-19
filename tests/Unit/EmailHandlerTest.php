@@ -58,7 +58,7 @@ final class EmailHandlerTest extends TestCase
             from: "alerts@example.com",
             notifySeverities: [Severity::CRITICAL],
             smtpHost: "127.0.0.1",
-            smtpPort: 99999,
+            smtpPort: 25252,
             smtpUser: "test_user",
             smtpPass: "test_pass",
             smtpTimeout: 1
