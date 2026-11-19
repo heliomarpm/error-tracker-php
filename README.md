@@ -11,7 +11,6 @@
 
 <div class="badges">
 
-  [![Live Demo](https://img.shields.io/badge/Vercel-Live%20Demo-1C1E26?style=for-the-badge&logo=vercel&labelColor=1C1E26&color=00F2FE)](https://error-tracker-php.vercel.app)
   [![GitHub Sponsors][url-github-sponsors-badge]][url-github-sponsors]
   [![PayPal][url-paypal-badge]][url-paypal]
   [![Ko-fi][url-kofi-badge]][url-kofi]
@@ -39,10 +38,13 @@
 
 ---
 
-## 🌐 Demonstração ao Vivo (Vercel)
+## 🌐 Demonstração
 
 Você pode testar a biblioteca interativamente no navegador:
-* 🚀 **Demo Online**: [Live Demo no Vercel](https://error-tracker-php.vercel.app)
+
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Demo-1C1E26?style=for-the-badge&logo=vercel&labelColor=1C1E26&color=00c2ca)](https://error-tracker-php.vercel.app)
+&nbsp;
+
 * Simulação de falhas leves (Notices/Warnings) e críticas (Exceptions/Fatal).
 * Sanitização de formulários em tempo real (teste de senhas, cartões e CPFs).
 * Simulador de estresse anti-flood (50 requisições simultâneas com deduplicação).
