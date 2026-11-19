@@ -5,6 +5,13 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+# [1.3.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.2.1...v1.3.0) (2026-11-19)
+
+
+### Features
+
+* **transport:** ✨ adicionar transporte SMTP e contexto em templates ([0f18a55](https://github.com/heliomarpm/error-tracker-php/commit/0f18a55d5bdc5fbdfc6cb2afba2f19862dc2f3eb))
+
 ## [1.2.1](https://github.com/heliomarpm/error-tracker-php/compare/v1.2.0...v1.2.1) (2026-11-10)
 
 
