@@ -83,12 +83,37 @@
           </td>
         </tr>
         <tr>
-          <td colspan="2" style="padding: 12px 16px; width: 100%;">
+          <td colspan="2" style="padding: 12px 16px; border-bottom: 1px solid #21262d; width: 100%;">
             <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">PHP / Servidor</span>
             <span style="font-size: 13px; color: #f0f6fc;">PHP <strong style="color: #ffffff;">{{php_version}}</strong> em {{server_name}}</span>
           </td>
         </tr>
+        <tr>
+          <td style="padding: 12px 16px; width: 50%;">
+            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">IP do Cliente</span>
+            <code style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: #f0f6fc;">{{client_ip}}</code>
+          </td>
+          <td style="padding: 12px 16px; width: 50%;">
+            <span style="font-size: 11px; text-transform: uppercase; color: #8b949e; display: block; font-weight: 600;">Referer</span>
+            <span style="font-size: 12px; color: #8b949e; word-break: break-all;"><!-- IF_REFERER -->{{referer}}<!-- /IF_REFERER --></span>
+          </td>
+        </tr>
       </table>
+
+<!-- IF_SQL -->
+      <!-- Consulta SQL e Parâmetros -->
+      <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #f59e0b;">
+        🗄️ Consulta SQL / Banco de Dados
+      </h3>
+      <div style="background-color: #0d1117; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 16px; margin-bottom: 24px; overflow-x: auto;">
+        <pre style="margin: 0; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12px; line-height: 1.6; color: #fbbf24; white-space: pre-wrap; word-break: break-all;">{{sql}}</pre>
+        <!-- IF_SQL_PARAMS -->
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #21262d; font-size: 12px; color: #8b949e;">
+          <strong style="color: #d1d5db;">Parâmetros:</strong> <code style="color: #6ee7b7; font-family: 'SFMono-Regular', Consolas, monospace;">{{sql_params}}</code>
+        </div>
+        <!-- /IF_SQL_PARAMS -->
+      </div>
+<!-- /IF_SQL -->
 
 <!-- IF_TRACE -->
       <!-- Stack Trace -->

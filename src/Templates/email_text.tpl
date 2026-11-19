@@ -18,11 +18,21 @@ Origem:       {{error_file}}:{{error_line}}
 Causa Raiz:   {{previous_class}}: {{previous_message}}
 <!-- /IF_PREVIOUS -->
 Rota/Método:  {{request_method}} {{request_uri}}
+IP / Referer: {{client_ip}}<!-- IF_REFERER --> | Referer: {{referer}}<!-- /IF_REFERER -->
 Usuário:      {{usuario_nome}}
 Data/Hora:    {{timestamp}}
 Aplicação:   {{app_name}} ({{environment}})
 PHP / Serv.:  PHP {{php_version}} em {{server_name}}
 Memória:      {{memory_usage}}
+<!-- IF_SQL -->
+--------------------------------------------------------------------------------
+🗄️ CONSULTA SQL / BANCO DE DADOS
+--------------------------------------------------------------------------------
+{{sql}}
+<!-- IF_SQL_PARAMS -->
+Parâmetros:   {{sql_params}}
+<!-- /IF_SQL_PARAMS -->
+<!-- /IF_SQL -->
 <!-- IF_TRACE -->
 
 -------------------------------------------------------------------------------

@@ -10,8 +10,14 @@ Origem:      {{error_file}}:{{error_line}}
 Causa Raiz:  {{previous_class}}: {{previous_message}}
 <!-- /IF_PREVIOUS -->
 Aplicação:   {{app_name}} ({{environment}}) | Servidor: {{server_name}}
-Rota/Método: {{request_method}} {{request_uri}}
+Rota/Método: {{request_method}} {{request_uri}} | IP: {{client_ip}}<!-- IF_REFERER --> | Referer: {{referer}}<!-- /IF_REFERER -->
 Usuário:     {{usuario_nome}} | Memória: {{memory_usage}} | Hash: {{hash}}
+<!-- IF_SQL -->
+SQL Query:   {{sql}}
+<!-- IF_SQL_PARAMS -->
+SQL Params:  {{sql_params}}
+<!-- /IF_SQL_PARAMS -->
+<!-- /IF_SQL -->
 <!-- IF_TRACE -->
 
 Stack Trace:
