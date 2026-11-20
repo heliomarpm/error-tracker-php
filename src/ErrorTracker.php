@@ -102,6 +102,16 @@ final class ErrorTracker implements LoggerInterface
 
   /**
    * Factory method para inicialização fluente e de fácil implementação.
+   *
+   * @param CacheInterface|null $cache Instância de cache (PSR-16) para evitar flood de alertas.
+   * @param int $cacheTtlSeconds Tempo em segundos que um erro idêntico será silenciado (padrão 1 hora).
+   * @param string|null $userName Nome ou identificador estático do usuário padrão.
+   * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico invocado em runtime para resolver o usuário logado.
+   * @param string $appName Nome da aplicação.
+   * @param string $environment Ambiente de execução (ex: production, staging, development, local).
+   * @param string|null $serverName Nome do host ou servidor.
+   * @param array<string, mixed> $extraContext Metadados adicionais compartilhados com todos os handlers.
+   * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout no sanitizador.
    */
   public static function create(
       ?CacheInterface $cache = null,
@@ -245,80 +255,6 @@ final class ErrorTracker implements LoggerInterface
   public function getIgnoredCallers(): array
   {
     return $this->ignoredCallers;
-  }
-
-  /**
-   * Define o nome ou identificador do usuário ativo.
-   */
-  public function setUserName(?string $userName): self
-  {
-    $this->userName = $userName;
-    return $this;
-  }
-
-  public function getUserName(): ?string
-  {
-    return $this->userName;
-  }
-
-  /**
-   * Define um callback dinâmico para resolver o nome do usuário ativo em runtime.
-   * Exemplo: fn() => Auth::user()?->name ?? $_SESSION['usuario']['nome'] ?? null
-   */
-  public function setUserResolver(?callable $resolver): self
-  {
-    $this->userResolver = $resolver;
-    return $this;
-  }
-
-  public function setAppName(string $appName): self
-  {
-    $this->appName = $appName;
-    return $this;
-  }
-
-  public function getAppName(): string
-  {
-    return $this->appName;
-  }
-
-  public function setEnvironment(string $environment): self
-  {
-    $this->environment = $environment;
-    return $this;
-  }
-
-  public function getEnvironment(): string
-  {
-    return $this->environment;
-  }
-
-  public function setServerName(?string $serverName): self
-  {
-    $this->serverName = $serverName;
-    return $this;
-  }
-
-  public function getServerName(): ?string
-  {
-    return $this->serverName;
-  }
-
-  /**
-   * @param array<string, mixed> $extraContext
-   */
-  public function setExtraContext(array $extraContext): self
-  {
-    $this->extraContext = $extraContext;
-    return $this;
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  public function getExtraContext(): array
-  {
-    return $this->extraContext;
   }
 
   /**

@@ -1,7 +1,7 @@
 # Tarefas do Projeto: HeliomarPM ErrorTracker
 
 > **Meta:** Estabilização de código, modernização para PHP 8.2+, suíte de testes, Handlers desacoplados com templates externos, identidade visual e demo para Vercel\
-> **Status:** concluído | **Progresso:** 29/29 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-11-19
+> **Status:** concluído | **Progresso:** 29/29 (100%) | **WIP:** 0/2 | **Atualizado em:** 2026-11-20
 
 ## Em progresso
 
@@ -17,16 +17,19 @@
 
 ## Concluídas recentemente
 
-- [x] **T-029 · P1 · Refatorar resolução de usuário, eliminar ResolvesUserTrait e simplificar contratos de API** (2026-11-19)
-  - Arquivos: [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php) (removido), [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [ErrorContext.php](../src/ErrorContext.php), [ErrorTracker.php](../src/ErrorTracker.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [HandlerInterface.php](../src/Contracts/HandlerInterface.php), [README.md](../README.md), [HANDLERS.md](../docs/HANDLERS.md), [TEMPLATES.md](../docs/TEMPLATES.md), [index.php](../demo/index.php)
-  - Evidência: 93 testes e 299 asserções aprovados no PHPUnit (100%), eliminação de 3 camadas redundantes de resolução de user, remoção de aliases multi-idioma em `parameters()`, adição de `ErrorTracker::create()`, `register(): void` e remoção do `exit(1)` no failsafe crítico
+- [x] **T-029 · P1 · Refatorar resolução de usuário, eliminar ResolvesUserTrait e simplificar contratos de API** (2026-11-20)
+  - Arquivos: [ResolvesUserTrait.php](../src/Handlers/Traits/ResolvesUserTrait.php) (removido), [AbstractHandler.php](../src/Handlers/AbstractHandler.php), [DatabaseHandler.php](../src/Handlers/DatabaseHandler.php), [EmailHandler.php](../src/Handlers/EmailHandler.php), [FilelogHandler.php](../src/Handlers/FilelogHandler.php), [GitHubIssueHandler.php](../src/Handlers/GitHubIssueHandler.php), [WebhookHandler.php](../src/Handlers/WebhookHandler.php), [ErrorContext.php](../src/ErrorContext.php), [ErrorTracker.php](../src/ErrorTracker.php), [TemplateRenderer.php](../src/Formatters/TemplateRenderer.php), [HandlerInterface.php](../src/Contracts/HandlerInterface.php), [README.md](../README.md), [HANDLERS.md](../docs/HANDLERS.md), [TEMPLATES.md](../docs/TEMPLATES.md), [index.php](../demo/index.php)
+  - Evidência: 93 testes e 299 asserções aprovados no PHPUnit (100%), PHPStan 0 erros, Pint aprovado; eliminação de 3 camadas redundantes de resolução de user, criação de `AbstractHandler` compartilhando `shouldReport()` e `renderer()`, injeção de `SmtpTransport` no `EmailHandler`, remoção de getters/setters individuais redundantes e aliases multi-idioma em `parameters()`, adição de `ErrorTracker::create()`, `register(): void` e remoção do `exit(1)` no failsafe crítico
   - DoD:
     - [x] Remover `ResolvesUserTrait` e parâmetros `$userName`/`$userResolver` de todos os 5 handlers
+    - [x] Extrair `AbstractHandler` com `shouldReport()` e `renderer()` compartilhado entre os 5 handlers
+    - [x] Desacoplar `SmtpTransport` via injeção no construtor do `EmailHandler`
+    - [x] Remover getters/setters individuais redundantes do `ErrorTracker` em favor de `parameters()` / `getParameters()`
     - [x] Unificar resolução de usuário no `ErrorTracker` e propagar diretamente no `ErrorContext`
     - [x] Remover adivinhação mágica de `$_SESSION` e o método `resolveUserString` com reflexão de objetos
     - [x] Simplificar `parameters()` para aceitar apenas named arguments em inglês
     - [x] Simplificar `register()` para `register(): void` sem repetição de parâmetros
-    - [x] Adicionar factory method estático `ErrorTracker::create(...)`
+    - [x] Adicionar factory method estático `ErrorTracker::create(...)` com PHPDoc completo
     - [x] Remover `exit(1)` hardcoded do failsafe crítico delegando controle ao callback
     - [x] Adicionar `declare(strict_types=1)` em `HandlerInterface.php` e tornar senha privada no `SmtpTransport`
     - [x] Atualizar documentação, playground da demo e suíte de testes unitários

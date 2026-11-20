@@ -8,6 +8,7 @@ use Exception;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Handlers\EmailHandler;
 use HeliomarPM\ErrorTracker\Severity;
+use HeliomarPM\ErrorTracker\Transports\SmtpTransport;
 use PHPUnit\Framework\TestCase;
 
 final class EmailHandlerTest extends TestCase
@@ -57,11 +58,7 @@ final class EmailHandlerTest extends TestCase
             "support@example.com",
             from: "alerts@example.com",
             notifySeverities: [Severity::CRITICAL],
-            smtpHost: "127.0.0.1",
-            smtpPort: 25252,
-            smtpUser: "test_user",
-            smtpPass: "test_pass",
-            smtpTimeout: 1
+            smtpTransport: new SmtpTransport("127.0.0.1", 25252, "test_user", "test_pass", "ssl", 1)
         );
 
         $context = new ErrorContext(

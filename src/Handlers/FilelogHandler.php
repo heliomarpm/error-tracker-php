@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Handlers;
 
-use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
-use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
 use HeliomarPM\ErrorTracker\Severity;
 
-final class FilelogHandler implements HandlerInterface
+final class FilelogHandler extends AbstractHandler
 {
   private string $logDirectory;
   private string $templatePath;
-  private TemplateRenderer $renderer;
 
   /** @var (callable(ErrorContext): string)|null */
   private $formatter = null;
@@ -27,13 +24,13 @@ final class FilelogHandler implements HandlerInterface
   public function __construct(
       string $logDirectory,
       ?string $templateOrPath = null,
-      private readonly ?array $notifySeverities = null,
+      ?array $notifySeverities = null,
       ?callable $formatter = null
   ) {
+    parent::__construct($notifySeverities);
     $this->logDirectory = rtrim($logDirectory, '/\\');
     $this->templatePath = $templateOrPath ?? dirname(__DIR__) . '/Templates/filelog.tpl';
     $this->formatter = $formatter;
-    $this->renderer = new TemplateRenderer();
 
     // Garante que o diretório de logs exista
     if (!is_dir($this->logDirectory)) {
@@ -43,7 +40,7 @@ final class FilelogHandler implements HandlerInterface
 
   public function report(ErrorContext $context): void
   {
-    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+    if (!$this->shouldReport($context)) {
       return;
     }
 
@@ -65,7 +62,7 @@ final class FilelogHandler implements HandlerInterface
       return ($this->formatter)($context);
     }
 
-    return $this->renderer->render($this->templatePath, $context);
+    return $this->renderer()->render($this->templatePath, $context);
   }
 
   /**

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Handlers;
 
-use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Severity;
 use PDO;
 use PDOException;
 
-final class DatabaseHandler implements HandlerInterface
+final class DatabaseHandler extends AbstractHandler
 {
   private bool $tableChecked = false;
 
@@ -24,8 +23,10 @@ final class DatabaseHandler implements HandlerInterface
       private readonly PDO $pdo,
       private readonly string $tableName = "error_tracker",
       private readonly bool $autoCreate = false,
-      private readonly ?array $notifySeverities = null
-  ) {}
+      ?array $notifySeverities = null
+  ) {
+    parent::__construct($notifySeverities);
+  }
 
   public function report(ErrorContext $context): void
   {
@@ -35,7 +36,7 @@ final class DatabaseHandler implements HandlerInterface
       $this->tableChecked = true;
     }
 
-    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+    if (!$this->shouldReport($context)) {
       return;
     }
 

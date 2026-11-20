@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Handlers;
 
-use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
-use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
 use HeliomarPM\ErrorTracker\Severity;
 use HeliomarPM\ErrorTracker\Transports\SmtpTransport;
 use Throwable;
 
-final class EmailHandler implements HandlerInterface
+final class EmailHandler extends AbstractHandler
 {
-  private TemplateRenderer $renderer;
   private string $templatePath;
-  private ?SmtpTransport $smtpTransport = null;
 
   /** @var (callable(ErrorContext): string)|null */
   private $formatter = null;
@@ -28,61 +24,39 @@ final class EmailHandler implements HandlerInterface
    * @param string|null $templateOrPath Caminho do arquivo de template ou string customizada.
    * @param string $subjectTemplate Template do assunto com tags (ex: 🚨 [{{severity}}] {{message}}).
    * @param (callable(ErrorContext): string)|null $formatter Callback customizado para formatação do corpo.
-   * @param string|null $smtpHost Host do servidor SMTP (ex: smtp.titan.email).
-   * @param int $smtpPort Porta do servidor SMTP (465 para SSL, 587 para TLS/STARTTLS).
-   * @param string|null $smtpUser Usuário de autenticação SMTP.
-   * @param string|null $smtpPass Senha de autenticação SMTP.
-   * @param string $smtpSecure Tipo de criptografia: 'ssl', 'tls' ou 'none'.
-   * @param int $smtpTimeout Timeout da conexão SMTP em segundos.
+   * @param SmtpTransport|null $smtpTransport Instância opcional de transporte SMTP autenticado.
    * @param bool $multipart Se verdadeiro e formato for HTML, envia e-mail multipart/alternative com versão texto e HTML.
    */
   public function __construct(
       private readonly string $to,
       private readonly string $from = 'noreply@errortracker.com.br',
-      private readonly ?array $notifySeverities = [Severity::CRITICAL],
+      ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'html',
       ?string $templateOrPath = null,
       private readonly string $subjectTemplate = '<!-- IF_EXCEPTION -->🚨 [{{severity}}] Incidente Detectado: {{message}}<!-- /IF_EXCEPTION --><!-- IF_MESSAGE_ONLY -->ℹ️ [{{severity}}] Evento: {{message}}<!-- /IF_MESSAGE_ONLY -->',
       ?callable $formatter = null,
-      private readonly ?string $smtpHost = null,
-      private readonly int $smtpPort = 465,
-      private readonly ?string $smtpUser = null,
-      private readonly ?string $smtpPass = null,
-      private readonly string $smtpSecure = 'ssl',
-      private readonly int $smtpTimeout = 10,
+      private readonly ?SmtpTransport $smtpTransport = null,
       private readonly bool $multipart = true
   ) {
+    parent::__construct($notifySeverities);
     $this->formatter = $formatter;
-    $this->renderer = new TemplateRenderer();
 
     $defaultTemplate = strtolower($this->format) === 'text'
       ? dirname(__DIR__) . '/Templates/email_text.tpl'
       : dirname(__DIR__) . '/Templates/email_html.tpl';
 
     $this->templatePath = $templateOrPath ?? $defaultTemplate;
-
-    // Pré-instancia o transporte SMTP se configurado, evitando recriação a cada report()
-    if (!empty($this->smtpHost) && !empty($this->smtpUser)) {
-      $this->smtpTransport = new SmtpTransport(
-          $this->smtpHost,
-          $this->smtpPort,
-          $this->smtpUser,
-          $this->smtpPass ?? '',
-          $this->smtpSecure,
-          $this->smtpTimeout
-      );
-    }
   }
 
   public function report(ErrorContext $context): void
   {
     // 1. Filtro de Severidade
-    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+    if (!$this->shouldReport($context)) {
       return;
     }
 
     // 2. Renderização e Sanitização do Assunto (evita header injection / quebras \r\n no mail)
-    $renderedSubject = $this->renderer->render($this->subjectTemplate, $context);
+    $renderedSubject = $this->renderer()->render($this->subjectTemplate, $context);
     $cleanSubject = trim(preg_replace('/[\r\n\t]+/', ' ', $renderedSubject) ?? '');
     $encodedSubject = mb_encode_mimeheader($cleanSubject, 'UTF-8', 'B', '');
 
@@ -131,7 +105,7 @@ final class EmailHandler implements HandlerInterface
       try {
         $sent = $this->smtpTransport->send($this->from, $this->to, $encodedSubject, $fullBody, $headers);
         if (!$sent) {
-          error_log("HeliomarPM ErrorTracker falha no transporte SMTP ({$this->smtpHost}): " . $this->smtpTransport->getLastError());
+          error_log("HeliomarPM ErrorTracker falha no transporte SMTP ({$this->smtpTransport->host}): " . $this->smtpTransport->getLastError());
         }
       } catch (Throwable $e) {
         error_log("HeliomarPM ErrorTracker exceção no transporte SMTP: " . $e->getMessage());
@@ -168,6 +142,6 @@ final class EmailHandler implements HandlerInterface
 
   private function renderBodyWithTemplate(ErrorContext $context, string $templatePath): string
   {
-    return $this->renderer->render($templatePath, $context);
+    return $this->renderer()->render($templatePath, $context);
   }
 }

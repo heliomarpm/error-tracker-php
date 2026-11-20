@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Handlers;
 
-use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
-use HeliomarPM\ErrorTracker\Formatters\TemplateRenderer;
 use HeliomarPM\ErrorTracker\Severity;
 
-final class GitHubIssueHandler implements HandlerInterface
+final class GitHubIssueHandler extends AbstractHandler
 {
-  private TemplateRenderer $renderer;
   private string $bodyTemplatePath;
   private string $commentTemplatePath;
 
@@ -33,15 +30,15 @@ final class GitHubIssueHandler implements HandlerInterface
       private readonly string $token,
       private readonly string $repository,
       private readonly string $application = 'ErrorTracker',
-      private readonly ?array $notifySeverities = [Severity::CRITICAL, Severity::WARNING],
+      ?array $notifySeverities = [Severity::CRITICAL, Severity::WARNING],
       private readonly int $timeoutSeconds = 3,
       private readonly bool $deduplicateOpenIssues = true,
       ?callable $bodyFormatter = null,
       ?string $bodyTemplateOrPath = null,
       ?string $commentTemplateOrPath = null
   ) {
+    parent::__construct($notifySeverities);
     $this->bodyFormatter = $bodyFormatter;
-    $this->renderer = new TemplateRenderer();
     $this->bodyTemplatePath = $bodyTemplateOrPath ?? dirname(__DIR__) . '/Templates/github_issue_body.tpl';
     $this->commentTemplatePath = $commentTemplateOrPath ?? dirname(__DIR__) . '/Templates/github_issue_comment.tpl';
   }
@@ -67,19 +64,19 @@ final class GitHubIssueHandler implements HandlerInterface
 
     $extraTags = $this->resolveExtraTags($context);
 
-    return $this->renderer->render($this->bodyTemplatePath, $context, $extraTags);
+    return $this->renderer()->render($this->bodyTemplatePath, $context, $extraTags);
   }
 
   public function renderComment(ErrorContext $context): string
   {
     $extraTags = $this->resolveExtraTags($context);
 
-    return $this->renderer->render($this->commentTemplatePath, $context, $extraTags);
+    return $this->renderer()->render($this->commentTemplatePath, $context, $extraTags);
   }
 
   public function report(ErrorContext $context): void
   {
-    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+    if (!$this->shouldReport($context)) {
       return;
     }
 

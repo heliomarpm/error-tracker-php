@@ -145,7 +145,7 @@ final class ErrorTrackerTest extends TestCase
     public function testTracksUserConfiguredViaSetUserName(): void
     {
         $tracker = new ErrorTracker($this->cache);
-        $tracker->setUserName('admin_global');
+        $tracker->parameters(userName: 'admin_global');
 
         $reportedContext = null;
         $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
@@ -169,7 +169,7 @@ final class ErrorTrackerTest extends TestCase
     {
         $tracker = new ErrorTracker($this->cache);
         $currentUser = 'joao_silva';
-        $tracker->setUserResolver(function () use (&$currentUser) {
+        $tracker->parameters(userResolver: function () use (&$currentUser) {
             return $currentUser;
         });
 
@@ -221,7 +221,7 @@ final class ErrorTrackerTest extends TestCase
     public function testUserResolverExceptionDoesNotBreakTracking(): void
     {
         $tracker = new ErrorTracker($this->cache);
-        $tracker->setUserResolver(function () {
+        $tracker->parameters(userResolver: function () {
             throw new RuntimeException('Falha no serviço de autenticação');
         });
 
@@ -246,7 +246,7 @@ final class ErrorTrackerTest extends TestCase
     public function testExtraContextUserOverridesGlobalTrackerUser(): void
     {
         $tracker = new ErrorTracker($this->cache);
-        $tracker->setUserName('user_padrao');
+        $tracker->parameters(userName: 'user_padrao');
 
         $reportedContext = null;
         $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
@@ -342,8 +342,9 @@ final class ErrorTrackerTest extends TestCase
         $tracker = new ErrorTracker($this->cache, appName: 'App No Register', environment: 'testing');
         $tracker->register();
 
-        $this->assertSame('App No Register', $tracker->getAppName());
-        $this->assertSame('testing', $tracker->getEnvironment());
+        $params = $tracker->getParameters();
+        $this->assertSame('App No Register', $params['appName']);
+        $this->assertSame('testing', $params['environment']);
 
         ErrorTracker::unregister();
     }

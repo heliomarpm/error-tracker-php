@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace HeliomarPM\ErrorTracker\Handlers;
 
-use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\Severity;
 
-final class WebhookHandler implements HandlerInterface
+final class WebhookHandler extends AbstractHandler
 {
   /** @var (callable(ErrorContext): array<string, mixed>)|null */
   private $payloadFormatter = null;
@@ -22,17 +21,18 @@ final class WebhookHandler implements HandlerInterface
    */
   public function __construct(
       private readonly string $webhookUrl,
-      private readonly ?array $notifySeverities = [Severity::CRITICAL],
+      ?array $notifySeverities = [Severity::CRITICAL],
       private readonly string $format = 'generic',
       private readonly int $timeoutSeconds = 3,
       ?callable $payloadFormatter = null
   ) {
+    parent::__construct($notifySeverities);
     $this->payloadFormatter = $payloadFormatter;
   }
 
   public function report(ErrorContext $context): void
   {
-    if ($this->notifySeverities !== null && !in_array($context->severity, $this->notifySeverities, true)) {
+    if (!$this->shouldReport($context)) {
       return;
     }
 
