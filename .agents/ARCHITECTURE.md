@@ -1,12 +1,12 @@
 # Arquitetura do Sistema: HeliomarPM ErrorTracker
 
-> Atualizado em: 2026-10-25
+> Atualizado em: 2026-11-20
 
 ## Estilo arquitetural
 
-Biblioteca orientada a eventos e desacoplada baseada no padrão **Strategy / Observer (Handler Pattern)**, complementada por **Interceptação Global de Erros** no runtime do PHP e um DTO imutável (`ErrorContext`).
+Biblioteca orientada a eventos e desacoplada baseada no padrão **Strategy / Observer (Handler Pattern)**, complementada por **Interceptação Global de Erros** no runtime do PHP, implementação de **`Psr\Log\LoggerInterface` (PSR-3)** e um DTO imutável (`ErrorContext`).
 
-O componente central `ErrorTracker` atua como facade e orquestrador do ciclo de vida: registra os tratadores nativos do PHP (`set_exception_handler`, `set_error_handler`, `register_shutdown_function`), sanitiza dados de requisição, calcula uma assinatura única (hash MD5) para deduplicação em cache e despacha o evento para múltiplos canais independentes que implementam `HandlerInterface`.
+O componente central `ErrorTracker` atua como facade e orquestrador do ciclo de vida: registra os tratadores nativos do PHP (`set_exception_handler`, `set_error_handler`, `register_shutdown_function`), sanitiza dados de requisição e contexto, resolve o usuário responsável, calcula uma assinatura única (`md5(file . line . message)`) para deduplicação via PSR-16 e despacha o evento para múltiplos canais independentes que implementam `HandlerInterface` (em geral estendendo `AbstractHandler`).
 
 ## Diagrama de componentes
 
@@ -15,27 +15,28 @@ flowchart TD
     subgraph PHP_Runtime["Runtime PHP"]
         PHP_Error["Erro Nativo / Warning"]
         PHP_Exception["Exceção / Fatal"]
-        Manual_Log["Log Manual (info/notice/warning/error)"]
+        Manual_Log["Log PSR-3 (info/notice/warning/error/critical)"]
     end
 
     subgraph Core["HeliomarPM ErrorTracker Core"]
-        ET["ErrorTracker (Orquestrador)"]
+        ET["ErrorTracker (Orquestrador + PSR-3)"]
         DS["DataSanitizer (Blackout & Regex)"]
+        STF["StackTraceFormatter"]
         EC["ErrorContext (DTO + Hash MD5)"]
         TG["Cache Anti-Flood (FileCache / PSR-16)"]
     end
 
-    subgraph Handlers["Canais de Despacho (HandlerInterface)"]
-        DBH["DatabaseHandler (PDO MySQL/SQLite)"]
+    subgraph Handlers["Canais de Despacho (AbstractHandler / HandlerInterface)"]
+        TR["TemplateRenderer + src/Templates/*.tpl"]
+        DBH["DatabaseHandler (PDO MySQL/MariaDB/SQLite)"]
         FLH["FilelogHandler (Arquivo Rotacionado)"]
-        EMH["EmailHandler (HTML / Texto Puro)"]
+        EMH["EmailHandler (SmtpTransport / mail())"]
         GHH["GitHubIssueHandler (REST API + Deduplicação)"]
-        WHH["WebhookHandler (ChatOps Slack / Discord)"]
+        WHH["WebhookHandler (Slack / Discord / Genérico)"]
     end
 
     subgraph Failsafe["Rota de Fuga"]
-        CB["onCriticalCallback"]
-        HALT["exit(1)"]
+        CB["onCriticalCallback (consumidor decide resposta/exit)"]
     end
 
     PHP_Error --> ET
@@ -44,6 +45,7 @@ flowchart TD
 
     ET --> DS
     DS --> EC
+    STF --> EC
     EC --> TG
 
     TG -- "Se já reportado na janela TTL" --> CB
@@ -53,36 +55,41 @@ flowchart TD
     Handlers --> EMH
     Handlers --> GHH
     Handlers --> WHH
+    TR -.-> FLH
+    TR -.-> EMH
+    TR -.-> GHH
 
     Handlers --> CB
-    CB --> HALT
 ```
 
 ## Fluxo da requisição e tratamento de erros
 
-1. **Interceptação / Captura**: O método `register()` assume `set_exception_handler`, `set_error_handler` e `register_shutdown_function`. Chamadas manuais (`info`, `notice`, `warning`, `error`) sintetizam uma `ErrorException` via `debug_backtrace`.
-2. **Sanitização**: `DataSanitizer` percorre recursivamente os arrays `$_POST`, `$_GET` e `$_SERVER`. Chaves críticas sofrem blackout (`********`) e padrões como e-mail, CPF, cartões e telefones recebem máscaras parciais.
-3. **Contextualização & Deduplicação**: É instanciado `ErrorContext`, calculando o hash `md5(file + line + message)`. Se houver instância de `CacheInterface` configurada e a chave `error_tracker_{hash}` existir, o disparo para os handlers é silenciado para evitar *alert flood*.
-4. **Despacho Isolado**: Cada `HandlerInterface` registrado recebe o `ErrorContext`. Falhas individuais de cada handler são capturadas (`try/catch Throwable`) e registradas em `error_log` nativo, impedindo falhas em cascata.
-5. **Rota de Fuga (Failsafe)**: Em severidade `CRITICAL`, se houver callback registrado em `onCritical()`, este é invocado (ex: redirecionar para tela 500 amigável) e o processo é interrompido com `exit(1)` para evitar execução em estado corrompido.
+1. **Interceptação / Captura**: `ErrorTracker::create()` ou `new ErrorTracker(...)` inicializa a instância (com reconfiguração via `parameters()`). O método `register()` assume `set_exception_handler`, `set_error_handler` e `register_shutdown_function`. Chamadas PSR-3 manuais localizam a origem via `debug_backtrace` (respeitando `ignoredCallers`) e sintetizam uma `ErrorException` marcada com `isException: false`.
+2. **Sanitização e Resolução de Usuário**: `ErrorTracker::processError()` filtra `$_SERVER` (`ALLOWED_SERVER_KEYS` + headers `HTTP_*`), mescla `extraContext` e submete `$_POST`, `$_GET`, `server` e `context` ao `DataSanitizer::sanitize`. O usuário é resolvido uma única vez no `ErrorTracker` (contexto da chamada → `userResolver` → `userName`) e injetado no `ErrorContext`.
+3. **Contextualização & Deduplicação**: `ErrorContext` agrupa os metadados imutáveis (stack trace via `StackTraceFormatter`, origem, SQL via `context['sql']`/`context['sql_params']`, IP, Referer e hash MD5). Se houver `CacheInterface` configurada e `error_tracker_{hash}` estiver ativo no cache, o disparo aos handlers é silenciado para evitar *alert flood*.
+4. **Despacho Isolado**: Cada `HandlerInterface` registrado recebe o `ErrorContext`. Os handlers nativos estendem `AbstractHandler`, reutilizando `shouldReport()` (filtro por `Severity`) e `renderer()` (instância compartilhada de `TemplateRenderer`). Falhas individuais de qualquer handler são absorvidas em `try/catch (Throwable)` e registradas via `error_log()`.
+5. **Rota de Fuga (Failsafe)**: Em severidade `CRITICAL`, se houver callback em `onCritical()`, ele é invocado com o `ErrorContext`. O controle sobre redirecionamento, resposta JSON ou encerramento (`exit`) pertence integralmente ao consumidor.
 
 ## Módulos e responsabilidades
 
 | Módulo | Caminho | Responsabilidade | Dependências |
 | :--- | :--- | :--- | :--- |
-| Core Tracker | `src/ErrorTracker.php` | Orquestração do ciclo de vida, hooks do PHP e despacho | `DataSanitizer`, `ErrorContext`, `HandlerInterface`, `CacheInterface` |
-| Context DTO | `src/ErrorContext.php` | Agrupamento de metadados, trace, dados sanitizados e hash | `Severity` |
-| Sanitização | `src/DataSanitizer.php` | Mascaramento de dados confidenciais via blackout e regex | Nenhuma (PHP puro) |
-| Severidade | `src/Severity.php` | Enumeração dos níveis de criticidade dos incidentes | Nenhuma |
+| Core Tracker | `src/ErrorTracker.php` | Orquestração, PSR-3 (`LoggerInterface`), hooks do PHP e failsafe | `DataSanitizer`, `ErrorContext`, `HandlerInterface`, `CacheInterface` |
+| Context DTO | `src/ErrorContext.php` | DTO imutável com metadados, traces, SQL e hash MD5 | `StackTraceFormatter`, `Severity` |
+| Sanitização | `src/DataSanitizer.php` | Blackout de chaves sensíveis, máscaras regex e limite de profundidade | Nenhuma (PHP puro) |
+| Severidade | `src/Severity.php` | Enumeração tipada (`CRITICAL`, `WARNING`, `NOTICE`, `DEPRECATED`, `INFO`) | Nenhuma |
 | Contrato Handler | `src/Contracts/HandlerInterface.php` | Interface pública para criação de canais de notificação | `ErrorContext` |
-| Cache File | `src/Cache/FileCache.php` | Cache em arquivos locais compatível com PSR-16 | `Psr\SimpleCache\CacheInterface` |
-| Handlers Nativos | `src/Handlers/` | Adaptadores para Banco (PDO), Arquivo de log, E-mail e GitHub | `HandlerInterface`, `PDO`, `cURL` |
+| Handler Base | `src/Handlers/AbstractHandler.php` | Filtro de severidade `shouldReport()` e `renderer()` compartilhado | `HandlerInterface`, `TemplateRenderer`, `Severity` |
+| Formatadores | `src/Formatters/` | `StackTraceFormatter` e `TemplateRenderer` (tags + condicionais) | `ErrorContext` |
+| Templates | `src/Templates/*.tpl` | Templates desacoplados de e-mail HTML/texto, filelog e GitHub Issues | Nenhuma |
+| Transporte SMTP | `src/Transports/SmtpTransport.php` | Cliente SMTP nativo via sockets (SSL 465 / STARTTLS 587 / AUTH LOGIN) | Nenhuma (PHP puro) |
+| Cache File | `src/Cache/FileCache.php` | Cache em arquivos locais compatível com PSR-16 (`LOCK_EX`) | `Psr\SimpleCache\CacheInterface` |
+| Handlers Nativos | `src/Handlers/` | `DatabaseHandler`, `EmailHandler`, `FilelogHandler`, `GitHubIssueHandler`, `WebhookHandler` | `AbstractHandler`, `PDO`, `cURL`, `SmtpTransport` |
 
-## Riscos arquiteturais observados
+## Pontos de atenção operacionais
 
-1. **Defeito crítico em `DatabaseHandler.php`**: O método `report()` possui bloco de inserção de usuário com variáveis não declaradas (`$userId`, `$this->db`, `$sqlUser`, `$hash`). Além disso, o método `createTableIfNotExists` não cria os campos `updated_at` e `incidents` nem define chave `UNIQUE(hash)`, o que torna a query `INSERT ... ON DUPLICATE KEY UPDATE` propensa a falhas em produção.
-2. **Inconsistência de nomenclatura**: O `README.md` referencia os handlers sob o namespace `HeliomarPM\ErrorTracker\Adapters`, enquanto o código real reside em `HeliomarPM\ErrorTracker\Handlers`.
-3. **Chamada síncrona a serviços externos**: `GitHubIssueHandler` usa cURL síncrono (timeout de 3s) e `EmailHandler` usa `mail()` nativo síncrono, o que pode aumentar a latência de resposta em requisições de clientes com falha.
+1. **Chamadas síncronas em canais externos**: `GitHubIssueHandler` e `WebhookHandler` utilizam cURL síncrono (timeout padrão de `3s`) e `EmailHandler` utiliza `SmtpTransport` (timeout padrão de `10s`) ou `mail()` nativo síncrono, o que pode adicionar latência em requisições com falha caso os endpoints remotos estejam lentos.
+2. **Cache anti-flood opcional**: Quando nenhuma instância PSR-16 é passada ao `ErrorTracker`, a deduplicação fica desabilitada (sem I/O implícito em disco); para produção recomenda-se fornecer `FileCache` ou cache em memória (Redis/Memcached).
 
 ## Notas da Equipe
 *(Espaço reservado para anotações manuais da equipe. A skill não altera esta seção.)*

@@ -1,10 +1,10 @@
 # Estratégia de Testes: HeliomarPM ErrorTracker
 
-> Atualizado em: 2026-10-25
+> Atualizado em: 2026-11-20
 
 ## Framework e Configuração
 
-O repositório possui arquivo de configuração para o **PHPUnit** na raiz do projeto (`phpunit.xml`).
+O repositório utiliza **PHPUnit** configurado em `phpunit.xml`, complementado por **PHPStan** (`phpstan.neon`) e **Laravel Pint** (`pint.json`).
 
 ```xml
 <phpunit bootstrap="vendor/autoload.php" colors="true" executionOrder="random" failOnRisky="true" failOnWarning="true">
@@ -23,52 +23,31 @@ O repositório possui arquivo de configuração para o **PHPUnit** na raiz do pr
 
 | Ação | Comando | Origem |
 | :--- | :--- | :--- |
-| Executar todos os testes | `vendor/bin/phpunit` | `phpunit.xml` (requer `phpunit/phpunit` instalado) |
+| Executar todos os testes | `composer test` | `composer.json` / `phpunit.xml` |
 | Executar apenas Unitários | `vendor/bin/phpunit --testsuite Unit` | `phpunit.xml` |
-| Executar apenas Integração | `vendor/bin/phpunit --testsuite Integration` | `phpunit.xml` |
-
-*Nota: O `composer.json` atual não inclui `phpunit/phpunit` na seção `require-dev` nem scripts de atalho (`"test": "phpunit"`).*
-
----
-
-## Diagnóstico e Lacuna Crítica de Cobertura
-
-O diretório `tests/` **não existe** no repositório. Toda a validação funcional atual depende da aplicação manual em `demo/index.php`.
-
-Esta ausência impede a garantia de regressão em refatorações e manutenções do pacote.
+| Executar com cobertura | `composer test:coverage` | `composer.json` |
+| Análise estática (PHPStan) | `composer lint` | `composer.json` / `phpstan.neon` |
+| Verificar estilo (Pint) | `composer format` | `composer.json` / `pint.json` |
+| Validar estilo + lint | `composer check` | `composer.json` |
 
 ---
 
-## Plano de Testes Recomendado
+## Cobertura Atual (`tests/Unit/`)
 
-### 1. Testes Unitários (`tests/Unit/`)
+A suíte possui **12 arquivos de teste unitário** totalizando **93 testes e 299 asserções** (última execução completa validada em 2026-11-20 com 0 falhas e 0 erros):
 
-- **`DataSanitizerTest.php`**:
-  - Testar blackout de senhas (`password`, `senha`, `token`, `secret`, `cvv`, `authorization`).
-  - Testar ofuscação de e-mails normais e e-mails com nome curto.
-  - Testar formatação de CPF (`***.***.123-45`).
-  - Testar mascaramento de cartão de crédito e telefones.
-  - Testar arrays multidimensionais e preservação de tipos não-string.
-- **`FileCacheTest.php`**:
-  - Testar operações `set`, `get`, `has`, `delete` e `clear`.
-  - Testar expiração de TTL (tempo limite).
-  - Testar concorrência básica e integridade de arquivo.
-- **`ErrorContextTest.php`**:
-  - Validar cálculo determinístico do hash MD5 (`md5(file . line . message)`).
-  - Validar inicialização com severidade padrão `CRITICAL`.
-- **`ErrorTrackerTest.php`**:
-  - Validar adição e disparo ordenado de handlers mockados (`HandlerInterface`).
-  - Validar supressão de disparo quando o hash já consta no cache (anti-flood).
-  - Validar isolamento de exceções (quando um handler falha, os outros continuam).
-  - Validar invocação de `onCritical` e rota de fuga.
-
-### 2. Testes de Integração (`tests/Integration/`)
-
-- **`FilelogHandlerTest.php`**:
-  - Gravação real em diretório temporário (`sys_get_temp_dir()`).
-  - Verificação de formato de log, append e rotação de nomes `{severity}_{Ymd}.log`.
-- **`DatabaseHandlerTest.php`**:
-  - Execução de queries com banco SQLite em memória (`sqlite::memory:`) ou MySQL de teste para validar o auto-setup de tabela e integridade dos campos.
+- `DatabaseHandlerTest.php`: DDL SQLite em memória, upsert com incremento de `incidents`, filtro de severidade, `app_name` e `user_name`.
+- `DataSanitizerTest.php`: blackout de chaves sensíveis, máscara de e-mails/CPF/cartões/telefones e limite de profundidade (`DEFAULT_MAX_DEPTH`).
+- `EmailHandlerTest.php`: renderização HTML/texto, formatter customizado, filtro de severidade e injeção de `SmtpTransport` sem exceções.
+- `ErrorContextTest.php`: hash determinístico, resolução de usuário direto/contexto, SQL params, IP e Referer.
+- `ErrorTrackerTest.php`: disparo para handlers, deduplicação anti-flood, PSR-3 (`LoggerInterface`), backtrace com `ignoredCallers`, `create()`, `parameters()`, `register()`/`unregister()`, filtro de `$_SERVER` e `onCritical`.
+- `FileCacheTest.php`: `set`, `get`, `has`, `delete`, `clear`, operações múltiplas e expiração por TTL.
+- `FilelogHandlerTest.php`: gravação em disco com rotação diária, formatter customizado, renderização de usuário e tolerância a diretórios inválidos.
+- `GitHubIssueHandlerTest.php`: renderização de título, corpo e comentário de reincidência com tags de usuário e `isException: false`.
+- `SmtpTransportTest.php`: inicialização padrão/customizada, validação de destinatários vazios e falha graciosa em porta fechada.
+- `StackTraceFormatterTest.php`: normalização de caminhos e formatação compacta/detalhada.
+- `TemplateRendererTest.php`: interpolação de tags, condicionais (`IF_EXCEPTION`, `IF_PREVIOUS`, `IF_SQL`, `IF_USER`, etc.), tags extras e cache estático de templates.
+- `WebhookHandlerTest.php`: payloads Slack, Discord e genérico, filtro de severidade e `payloadFormatter` customizado.
 
 ## Notas da Equipe
 *(Espaço reservado para anotações manuais da equipe. A skill não altera esta seção.)*
