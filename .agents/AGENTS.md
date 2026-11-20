@@ -20,7 +20,7 @@
 
 ## Skills aplicáveis
 
-Stack detectada: PHP 8.1+, PDO (MySQL/MariaDB), PSR-16. Use `sk-tech-php`, `sk-sql`, `sk-testing` e `sk-git`.
+Stack detectada: PHP 8.1+, PDO (MySQL/MariaDB), PSR-16. Use `sk-tech-php`, `sk-sql`, `sk-testing`, `sk-refactor`, `sk-spec`, `sk-adr`, `sk-security` e `sk-git`.
 
 ## Antes de concluir uma tarefa
 
@@ -29,4 +29,5 @@ Stack detectada: PHP 8.1+, PDO (MySQL/MariaDB), PSR-16. Use `sk-tech-php`, `sk-s
 3. Executar a suíte de testes (`vendor/bin/phpunit`) assim que implementada.
 
 ## Notas da Equipe
-*(Espaço reservado para anotações manuais da equipe. A skill não altera esta seção.)*
+
+> *(Espaço reservado para anotações manuais da equipe. A skill não altera esta seção.)*

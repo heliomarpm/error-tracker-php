@@ -10,3 +10,4 @@ composer.json -export-ignore
 README.md -export-ignore
 LICENSE -export-ignore
 .gitattributes -export-ignore
+logo.png -export-ignore
