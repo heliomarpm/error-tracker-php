@@ -2024,11 +2024,11 @@ use PDO;
 // Conexão PDO existente da sua aplicação (MySQL ou SQLite)
 $pdo = new PDO("mysql:host=localhost;dbname=meu_banco;charset=utf8mb4", "root", "senha");
 
-// autoCreateTable: true cria a tabela 'error_tracker' com índices e campos automaticamente
+// autoCreate: true cria a tabela 'error_tracker' com índices e campos automaticamente
 $dbHandler = new DatabaseHandler(
     pdo: $pdo,
     tableName: 'error_tracker',
-    autoCreateTable: true,
+    autoCreate: true,
     notifySeverities: null // null registra todos os incidentes
 );
 
@@ -2045,6 +2045,7 @@ $tracker->addHandler($dbHandler);</pre>
                             </div>
                             <pre id="snippetFilelog" class="snippet-code">use HeliomarPM\ErrorTracker\Handlers\FilelogHandler;
 use HeliomarPM\ErrorTracker\Handlers\EmailHandler;
+use HeliomarPM\ErrorTracker\Transports\SmtpTransport;
 use HeliomarPM\ErrorTracker\Severity;
 
 // Log rotacionado diariamente com proteção de escrita exclusiva LOCK_EX
@@ -2053,12 +2054,20 @@ $filelog = new FilelogHandler(
     notifySeverities: [Severity::CRITICAL, Severity::WARNING]
 );
 
-// Disparo de e-mail formatado em HTML estilizado via mail()
+// Disparo de e-mail multipart (HTML + Texto) via SMTP autenticado (ou fallback mail() se omitido)
 $email = new EmailHandler(
     to: 'suporte@empresa.com',
     from: 'noreply@empresa.com',
     notifySeverities: [Severity::CRITICAL],
-    format: 'html' // ou 'text'
+    format: 'html', // ou 'text'
+    smtpTransport: new SmtpTransport(
+        host: 'smtp.seuprovedor.com',
+        port: 465,
+        username: 'noreply@empresa.com',
+        password: $_ENV['SMTP_PASS'],
+        secure: 'ssl' // 'ssl', 'tls' ou 'none'
+    ),
+    multipart: true
 );
 
 $tracker->addHandler($filelog)->addHandler($email);</pre>

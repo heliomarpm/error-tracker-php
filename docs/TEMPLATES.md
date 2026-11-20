@@ -22,13 +22,20 @@ Qualquer template ou formato que utilize `TemplateRenderer` suporta as seguintes
 | `{{previous_message}}` | Mensagem da exceção anterior | `SQLSTATE[HY000] [2002] Connection refused` |
 | `{{request_method}}` | Método HTTP da requisição ou `CLI` | `POST`, `GET`, `CLI` |
 | `{{request_uri}}` | Rota/URI acessada ou comando executado | `/api/v1/checkout` |
+| `{{app_name}}` | Nome da aplicação configurado no `ErrorTracker` | `Checkout API` |
+| `{{environment}}` | Ambiente de execução (`production`, `staging`, `development`, etc.) | `production` |
 | `{{server_name}}` | Hostname do servidor ou nome do host | `production-web-01` |
 | `{{php_version}}` | Versão do runtime PHP | `8.4.11` |
 | `{{memory_usage}}` | Pico de memória alocada no script | `18.45 MB` |
-| `{{usuario_nome}}` | Nome do usuário autenticado no contexto | `Carlos Dev` ou `Anônimo` |
+| `{{user}}` / `{{usuario_nome}}` | Nome do usuário autenticado no contexto | `Carlos Dev` ou `Anônimo / Não autenticado` |
+| `{{client_ip}}` | Endereço IP do cliente (`REMOTE_ADDR`) | `203.0.113.195` |
+| `{{referer}}` | URL de origem (`HTTP_REFERER`), quando presente | `https://app.example.com/checkout` |
+| `{{sql}}` | Consulta SQL associada ao incidente (via `context['sql']`) | `SELECT * FROM pedidos WHERE id = :id` |
+| `{{sql_params}}` | Parâmetros da consulta SQL (via `context['sql_params']`) | `{"id": 10}` |
 | `{{trace}}` / `{{stack_trace}}` | Stack trace formatado legível com paths relativos e chamadas | `src/Order.php(42)\n    at src/Controller.php(15): Checkout->process()` |
 | `{{compact_trace}}` | Stack trace compacto apenas com arquivo e linha | `src/Order.php(42)\n    at src/Controller.php(15)` |
-| `{{raw_trace}}` | Stack trace nativo do PHP (getTraceAsString) | `#0 /var/www/...` |
+| `{{detailed_trace}}` | Stack trace detalhado com chamada de método/função | `src/Order.php(42)\n    at src/Controller.php(15): Checkout->process()` |
+| `{{raw_trace}}` | Stack trace nativo do PHP (`getTraceAsString`) | `#0 /var/www/...` |
 | `{{relative_file}}` / `{{error_file}}` | Caminho do arquivo relativo à raiz do projeto | `src/Services/OrderService.php` |
 | `{{payload}}` | Dados de request sanitizados em JSON | `{"post":{"user":"admin"...}}` |
 | `{{hash}}` | Assinatura única (MD5) do erro | `eba8872610b3e3188d4da1c5c714cdcf` |
@@ -70,7 +77,10 @@ Stack Trace:
 * **`<!-- IF_ORIGIN -->`**: Exibido apenas se o arquivo e linha de origem estiverem disponíveis (ignora frames internos do logger e aponta diretamente para o código da sua aplicação).
 * **`<!-- IF_PREVIOUS -->`**: Exibido apenas se houver uma exceção encadeada (`$e->getPrevious()`). Se o erro não tiver causa anterior, todo o bloco é removido sem deixar linhas em branco.
 * **`<!-- IF_USER -->`**: Exibido apenas quando houver usuário autenticado no contexto (`$context->userName`).
-* Qualquer outra tag (ex.: `<!-- IF_PAYLOAD -->`) também é suportada.
+* **`<!-- IF_SQL -->` / `<!-- IF_SQL_PARAMS -->`**: Exibidos quando houver consulta SQL (`context['sql']`) ou parâmetros SQL (`context['sql_params']`).
+* **`<!-- IF_REFERER -->`**: Exibido quando houver URL de origem (`HTTP_REFERER`).
+* **`<!-- IF_PRODUCTION -->` / `<!-- IF_STAGING -->` / `<!-- IF_DEVELOPMENT -->`**: Exibidos de acordo com o ambiente configurado (`environment`; `DEVELOPMENT` aceita também `DEV` e `LOCAL`).
+* Qualquer outra tag extra passada em `$extraTags` também pode ser avaliada (ex.: `<!-- IF_MINHA_TAG -->`).
 
 ---
 

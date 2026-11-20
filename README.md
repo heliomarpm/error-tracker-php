@@ -33,7 +33,7 @@
   * **DatabaseHandler:** Suporte automático para MySQL, MariaDB e SQLite com contagem de reincidências (`incidents`) e auto-setup DDL.
   * **WebhookHandler:** Notificações estruturadas para canais de ChatOps (**Slack**, **Discord**, **Teams** ou Webhooks HTTP genéricos).
   * **GitHubIssueHandler:** Abertura automática de Issues formatadas em Markdown com stack trace e payload recolhível.
-  * **EmailHandler:** Envio via `mail()` nativo em HTML estilizado ou texto puro, com assunto customizável.
+  * **EmailHandler:** Envio via **SMTP autenticado (`SmtpTransport` SSL/TLS)** com fallback para `mail()` nativo, em HTML responsivo ou texto puro e suporte a `multipart/alternative`.
   * **FilelogHandler:** Log em disco rotacionado diariamente com proteção `LOCK_EX`.
 
 ---
@@ -94,6 +94,7 @@ $tracker->addHandler(new DatabaseHandler($pdo, 'system_errors', autoCreate: true
 // 3. Define a Rota de Fuga (Failsafe em falhas críticas)
 $tracker->onCritical(function ($context) {
     header("Location: /500.php?ref={$context->hash}");
+    exit;
 });
 
 // 4. Ativa o escudo global de interceptação nativa de Exceptions, Errors e Fatals
@@ -175,6 +176,8 @@ Para permitir que o handler crie issues na API do GitHub:
 | `timeoutSeconds` | `int` | `3` | Timeout em segundos da requisição HTTP cURL (não bloqueia a resposta do usuário). |
 | `deduplicateOpenIssues` | `bool` | `true` | Se `true`, busca issue aberta com o mesmo hash e insere comentário de reincidência. |
 | `bodyFormatter` | `?callable` | `null` | Closure customizada `callable(ErrorContext $context): string` para formatar o corpo em Markdown. |
+| `bodyTemplateOrPath` | `?string` | `null` | Caminho de arquivo ou string de template customizado para o corpo da issue. |
+| `commentTemplateOrPath` | `?string` | `null` | Caminho de arquivo ou string de template customizado para o comentário de reincidência. |
 
 ---
 
@@ -296,7 +299,7 @@ $tracker->log(LogLevel::NOTICE, "Rotina de limpeza de sessões expiradas finaliz
 
 ## 🛡️ Criando Handlers Personalizados
 
-Basta implementar a interface [HandlerInterface](src/Contracts/HandlerInterface.php):
+Basta implementar a interface [HandlerInterface](src/Contracts/HandlerInterface.php) (ou estender [AbstractHandler](src/Handlers/AbstractHandler.php) para herdar `shouldReport()` e `renderer()`):
 
 ```php
 use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;

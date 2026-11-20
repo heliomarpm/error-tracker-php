@@ -23,6 +23,7 @@ Agradecemos pelo seu interesse em contribuir com o **HeliomarPM ErrorTracker**! 
 * Execute a suíte de validação antes de submeter o PR:
   ```bash
   composer check
+  composer test
   ```
 * Se adicionar novos métodos ou alterar comportamentos, atualize a documentação no `README.md` e em `docs/`.
 
@@ -33,7 +34,7 @@ Agradecemos pelo seu interesse em contribuir com o **HeliomarPM ErrorTracker**! 
 * `composer format:full` — Aplica correções em todo o projeto com Laravel Pint.
 * `composer lint` — Executa a análise estática formal de código com PHPStan.
 * `composer test` — Executa a suíte de testes unitários com PHPUnit.
-* `composer check` — Executa a validação completa da suíte (formatação, lint e testes).
+* `composer check` — Executa a validação de estilo e análise estática (`@format` e `@lint`).
 
 ## 📝 Formato de Mensagens de Commit
 

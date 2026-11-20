@@ -46,6 +46,7 @@ O handler armazena dados estruturados para permitir agregações analíticas vel
 | Coluna | Tipo (MySQL) | Tipo (SQLite) | Descrição |
 | :--- | :--- | :--- | :--- |
 | `id` | `BIGINT AUTO_INCREMENT` | `INTEGER PRIMARY KEY` | Identificador único sequencial |
+| `app_name` | `VARCHAR(100) NULL` | `VARCHAR(100) NULL` | Nome da aplicação ou microsserviço |
 | `hash` | `VARCHAR(32) UNIQUE` | `VARCHAR(32) UNIQUE` | Hash MD5 do erro (arquivo + linha + mensagem) |
 | `severity` | `VARCHAR(20)` | `VARCHAR(20)` | Nível de severidade (`CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`) |
 | `error_class` | `VARCHAR(150)` | `VARCHAR(150)` | Nome da classe da exceção (ex: `PDOException`, `RuntimeException`) |
@@ -63,6 +64,7 @@ O handler armazena dados estruturados para permitir agregações analíticas vel
 | `incidents` | `INT DEFAULT 1` | `INT DEFAULT 1` | Contador automático de ocorrências |
 
 **Índices de Alta Performance Criados Automaticamente:**
+* `idx_app_name`: Filtro por aplicação ou microsserviço.
 * `idx_severity`: Filtro por criticidade em painéis e relatórios.
 * `idx_error_class`: Agrupamento e contagem por tipo de exceção.
 * `idx_updated_at`: Ordenação de incidentes recentes.
@@ -150,18 +152,27 @@ $tracker->addHandler($handler);
 
 ## 4. EmailHandler
 
-Dispara e-mails de alerta formatados em **HTML responsivo** ou **Texto Puro** usando a função nativa `mail()`.
+Dispara e-mails de alerta formatados em **HTML responsivo** ou **Texto Puro** com suporte a **SMTP autenticado (`SmtpTransport` via SSL 465 ou TLS/STARTTLS 587)**, fallback automático para a função nativa `mail()` (com envelope sender `-f`) e envio `multipart/alternative` (versão texto + HTML).
 
 ```php
 use HeliomarPM\ErrorTracker\Handlers\EmailHandler;
 use HeliomarPM\ErrorTracker\Severity;
+use HeliomarPM\ErrorTracker\Transports\SmtpTransport;
 
 $handler = new EmailHandler(
     to: 'devops@empresa.com',
     from: 'alertas@empresa.com',
     notifySeverities: [Severity::CRITICAL],
     format: 'html', // ou 'text'
-    subjectTemplate: '🚨 [{{severity}}] Falha no Sistema: {{message}}'
+    subjectTemplate: '🚨 [{{severity}}] Falha no Sistema: {{message}}',
+    smtpTransport: new SmtpTransport(
+        host: 'smtp.seuprovedor.com',
+        port: 465,
+        username: 'alertas@empresa.com',
+        password: $_ENV['SMTP_PASS'],
+        secure: 'ssl' // 'ssl', 'tls' ou 'none'
+    ),
+    multipart: true
 );
 
 $tracker->addHandler($handler);
@@ -200,7 +211,7 @@ $handler = new FilelogHandler(
 
 ## 6. Criando um Handler Customizado
 
-Implemente `HandlerInterface`:
+Implemente `HandlerInterface` (ou estenda `HeliomarPM\ErrorTracker\Handlers\AbstractHandler` para reutilizar o filtro `shouldReport()` e o motor de templates `renderer()`):
 
 ```php
 namespace App\ErrorHandlers;
