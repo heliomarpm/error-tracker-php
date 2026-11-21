@@ -77,6 +77,7 @@ final class ErrorTracker implements LoggerInterface
    * @param string|null $serverName Nome do host ou servidor.
    * @param array<string, mixed> $extraContext Metadados adicionais compartilhados com todos os handlers.
    * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout no sanitizador.
+   * @param bool $sanitize Habilita ou desabilita o mascaramento de dados sensíveis e de conexão (padrão true).
    */
   public function __construct(
       ?CacheInterface $cache = null,
@@ -87,9 +88,10 @@ final class ErrorTracker implements LoggerInterface
       string $environment = 'production',
       ?string $serverName = null,
       array $extraContext = [],
-      array $maskedKeys = []
+      array $maskedKeys = [],
+      bool $sanitize = true
   ) {
-    $this->sanitizer = new DataSanitizer($maskedKeys);
+    $this->sanitizer = new DataSanitizer($maskedKeys, enabled: $sanitize);
     $this->cache = $cache;
     $this->cacheTtl = $cacheTtlSeconds;
     $this->userName = $userName;
@@ -112,6 +114,7 @@ final class ErrorTracker implements LoggerInterface
    * @param string|null $serverName Nome do host ou servidor.
    * @param array<string, mixed> $extraContext Metadados adicionais compartilhados com todos os handlers.
    * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout no sanitizador.
+   * @param bool $sanitize Habilita ou desabilita o mascaramento de dados sensíveis e de conexão (padrão true).
    */
   public static function create(
       ?CacheInterface $cache = null,
@@ -122,7 +125,8 @@ final class ErrorTracker implements LoggerInterface
       string $environment = 'production',
       ?string $serverName = null,
       array $extraContext = [],
-      array $maskedKeys = []
+      array $maskedKeys = [],
+      bool $sanitize = true
   ): self {
     return new self(
         cache: $cache,
@@ -133,7 +137,8 @@ final class ErrorTracker implements LoggerInterface
         environment: $environment,
         serverName: $serverName,
         extraContext: $extraContext,
-        maskedKeys: $maskedKeys
+        maskedKeys: $maskedKeys,
+        sanitize: $sanitize
     );
   }
 
@@ -163,6 +168,7 @@ final class ErrorTracker implements LoggerInterface
    * @param (callable(): (string|Stringable|null))|null $userResolver Callback dinâmico para resolver o usuário ativo.
    * @param array<string, mixed> $extraContext Metadados extras compartilhados.
    * @param array<string> $maskedKeys Chaves adicionais personalizadas para blackout.
+   * @param bool|null $sanitize Habilita ou desabilita o mascaramento de dados sensíveis e de conexão.
    */
   public function parameters(
       ?string $appName = null,
@@ -171,7 +177,8 @@ final class ErrorTracker implements LoggerInterface
       ?string $userName = null,
       ?callable $userResolver = null,
       array $extraContext = [],
-      array $maskedKeys = []
+      array $maskedKeys = [],
+      ?bool $sanitize = null
   ): self {
     if ($appName !== null) {
       $this->appName = $appName;
@@ -194,6 +201,9 @@ final class ErrorTracker implements LoggerInterface
     if (!empty($maskedKeys)) {
       $this->sanitizer->addMaskedKeys($maskedKeys);
     }
+    if ($sanitize !== null) {
+      $this->sanitizer->setEnabled($sanitize);
+    }
 
     return $this;
   }
@@ -212,6 +222,7 @@ final class ErrorTracker implements LoggerInterface
         'userName' => $this->userName,
         'extraContext' => $this->extraContext,
         'maskedKeys' => $this->sanitizer->getMaskedKeys(),
+        'sanitize' => $this->sanitizer->isEnabled(),
     ];
   }
 
@@ -306,7 +317,8 @@ final class ErrorTracker implements LoggerInterface
   public function handleError(int $level, string $message, string $file = "", int $line = 0): bool
   {
     if (error_reporting() & $level) {
-      error_log($level . ": {$message} in {$file}:{$line}");
+      $loggedMessage = $this->sanitizer->sanitizeText($message);
+      error_log($level . ": {$loggedMessage} in {$file}:{$line}");
       $severity = match ($level) {
         E_NOTICE, E_USER_NOTICE => Severity::NOTICE,
         E_DEPRECATED, E_USER_DEPRECATED => Severity::DEPRECATED,
@@ -473,7 +485,8 @@ final class ErrorTracker implements LoggerInterface
         isException: $isException,
         appName: $this->appName,
         environment: $this->environment,
-        serverName: $this->serverName
+        serverName: $this->serverName,
+        sanitizer: $this->sanitizer
     );
 
     // 3. Verificação de Deduplicação via Cache

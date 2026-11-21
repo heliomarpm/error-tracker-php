@@ -53,17 +53,20 @@ final class ErrorContext
         bool $isException = true,
         ?string $appName = null,
         ?string $environment = null,
-        ?string $serverName = null
+        ?string $serverName = null,
+        ?DataSanitizer $sanitizer = null
     ) {
         $this->isException = $isException;
         $this->severity = $severity;
-        $this->message = $e->getMessage();
+        $rawMessage = $e->getMessage();
+        $this->message = $sanitizer !== null ? $sanitizer->sanitizeText($rawMessage) : $rawMessage;
         $this->code = $e->getCode();
         $this->file = $e->getFile();
         $this->relativeFile = StackTraceFormatter::normalizePath($this->file);
         $this->line = $e->getLine();
 
-        $this->rawTrace = $isException ? $e->getTraceAsString() : '';
+        $rawTrace = $isException ? $e->getTraceAsString() : '';
+        $this->rawTrace = $isException && $sanitizer !== null ? $sanitizer->sanitizeText($rawTrace) : $rawTrace;
         $this->compactTrace = $isException ? StackTraceFormatter::format($e, includeCall: false) : '';
         $this->detailedTrace = $isException ? StackTraceFormatter::format($e, includeCall: true) : '';
         $this->trace = $isException ? ($includeCallInTrace ? $this->detailedTrace : $this->compactTrace) : '';
@@ -74,7 +77,10 @@ final class ErrorContext
 
         $prev = $isException ? $e->getPrevious() : null;
         $this->previousClass = $prev !== null ? get_class($prev) : null;
-        $this->previousMessage = $prev !== null ? $prev->getMessage() : null;
+        $prevMessage = $prev !== null ? $prev->getMessage() : null;
+        $this->previousMessage = $prevMessage !== null && $sanitizer !== null
+            ? $sanitizer->sanitizeText($prevMessage)
+            : $prevMessage;
 
         $this->requestMethod = $_SERVER['REQUEST_METHOD'] ?? (PHP_SAPI === 'cli' ? 'CLI' : 'GET');
         $this->requestUri = $_SERVER['REQUEST_URI'] ?? (PHP_SAPI === 'cli' ? ($GLOBALS['argv'][0] ?? 'cli') : '/');

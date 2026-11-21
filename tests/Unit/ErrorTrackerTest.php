@@ -9,6 +9,7 @@ use HeliomarPM\ErrorTracker\Contracts\HandlerInterface;
 use HeliomarPM\ErrorTracker\ErrorContext;
 use HeliomarPM\ErrorTracker\ErrorTracker;
 use HeliomarPM\ErrorTracker\Severity;
+use PDOException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LogLevel;
 use RuntimeException;
@@ -523,5 +524,92 @@ final class ErrorTrackerTest extends TestCase
         $this->assertNotNull($reportedContext);
         $this->assertSame('/app/CustomService.php', $reportedContext->file);
         $this->assertSame(123, $reportedContext->line);
+    }
+
+    public function testSanitizesConnectionErrorsAndTraceByDefault(): void
+    {
+        $tracker = ErrorTracker::create(cache: $this->cache);
+
+        /** @var ErrorContext|null $reportedContext */
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+        $tracker->addHandler($handler);
+
+        $rootCause = new PDOException("SQLSTATE[HY000] [1045] Access denied for user 'root'@'10.0.0.20' (using password: YES)");
+        $exception = new PDOException(
+            "Falha ao conectar em mysql://admin:SegredoDB@10.0.0.20:3306/salvar_prod; PDO->__construct('mysql:host=10.0.0.20;dbname=salvar_prod', 'admin', 'SegredoDB')",
+            2002,
+            $rootCause
+        );
+
+        $_POST['db_pass'] = 'SegredoPost123';
+
+        try {
+            $tracker->handleException($exception);
+
+            $this->assertNotNull($reportedContext);
+            $this->assertTrue($tracker->getParameters()['sanitize']);
+            $this->assertSame('********', $reportedContext->requestData['post']['db_pass']);
+            $this->assertStringNotContainsString('SegredoDB', $reportedContext->message);
+            $this->assertStringNotContainsString('10.0.0.20', $reportedContext->message);
+            $this->assertStringContainsString('mysql://***:********@********', $reportedContext->message);
+            $this->assertStringContainsString('PDO->__construct([CONNECTION_ARGS_MASKED])', $reportedContext->message);
+            $this->assertNotNull($reportedContext->previousMessage);
+            $this->assertStringNotContainsString('10.0.0.20', $reportedContext->previousMessage);
+            $this->assertStringContainsString("Access denied for user '***'@'********'", $reportedContext->previousMessage);
+            $this->assertStringNotContainsString('SegredoDB', $reportedContext->rawTrace);
+        } finally {
+            unset($_POST['db_pass']);
+        }
+    }
+
+    public function testAllowsDisablingSanitizationViaCreateAndParameters(): void
+    {
+        $tracker = ErrorTracker::create(cache: $this->cache, sanitize: false);
+
+        /** @var ErrorContext|null $reportedContext */
+        $reportedContext = null;
+        $handler = new class (function (ErrorContext $c) use (&$reportedContext) {
+            $reportedContext = $c;
+        }) implements HandlerInterface {
+            public function __construct(private $callback) {}
+            public function report(ErrorContext $context): void
+            {
+                ($this->callback)($context);
+            }
+        };
+        $tracker->addHandler($handler);
+
+        $_POST['password'] = 'SenhaEmClaro123';
+        $rawMsg = "Falha mysql://admin:SegredoDB@10.0.0.20:3306/salvar_prod";
+
+        try {
+            $tracker->handleException(new RuntimeException($rawMsg));
+
+            $this->assertNotNull($reportedContext);
+            $this->assertFalse($tracker->getParameters()['sanitize']);
+            $this->assertSame('SenhaEmClaro123', $reportedContext->requestData['post']['password']);
+            $this->assertSame($rawMsg, $reportedContext->message);
+
+            // Reabilita e depois desabilita novamente via parameters()
+            $tracker->parameters(sanitize: true);
+            $this->assertTrue($tracker->getParameters()['sanitize']);
+            $tracker->parameters(sanitize: false);
+            $this->assertFalse($tracker->getParameters()['sanitize']);
+
+            $tracker->handleException(new RuntimeException('Outro erro ' . $rawMsg));
+            $this->assertSame('SenhaEmClaro123', $reportedContext->requestData['post']['password']);
+            $this->assertSame('Outro erro ' . $rawMsg, $reportedContext->message);
+        } finally {
+            unset($_POST['password']);
+        }
     }
 }
