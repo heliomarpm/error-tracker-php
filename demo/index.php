@@ -809,6 +809,33 @@
             box-shadow: 0 0 8px var(--cyan-glow);
         }
 
+        .sanitize-toggle-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: #090E17;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .sanitize-toggle-box:hover {
+            border-color: var(--cyan);
+            background: rgba(0, 242, 254, 0.04);
+        }
+
+        .sanitize-toggle-box input[type="checkbox"] {
+            margin-top: 2px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--cyan);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
         .comparison-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1720,8 +1747,10 @@
                 <!-- Tab 2: Playground de Sanitização LGPD -->
                 <div id="pane-playground" class="workspace-pane">
                     <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
-                        O <code>DataSanitizer</code> ofusca e-mails, CPFs e cartões, além de eliminar senhas e tokens de
-                        autenticação em <code>$_POST</code> e <code>$_SERVER</code> antes do despacho.
+                        O <code>DataSanitizer</code> ofusca e-mails, CPFs e cartões, além de ocultar senhas, tokens e
+                        dados de conexão (DSNs, URIs, <code>PDO</code>/<code>mysqli</code>) em <code>$_POST</code>,
+                        <code>$_SERVER</code>, mensagens e traces antes do despacho. É habilitado por padrão e opcional
+                        (<code>sanitize: true|false</code>).
                     </p>
 
                     <form id="sanitizerForm" onsubmit="handleSanitizeSubmit(event)">
@@ -1754,7 +1783,28 @@
                                 <input type="text" id="inputEmail" class="form-control"
                                     value="suporte.tech@empresa.com.br">
                             </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label>String de Conexão / DSN</label>
+                                <input type="text" id="inputDsn" class="form-control"
+                                    value="mysql://admin:SegredoDB@10.0.0.20:3306/salvar_prod">
+                            </div>
                         </div>
+
+                        <label class="sanitize-toggle-box" for="inputSanitize">
+                            <input type="checkbox" id="inputSanitize" checked onchange="updateSanitizeToggleUi()">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <span style="font-size: 13px; font-weight: 700; color: #FFF;">
+                                        Ativar sanitização / mascaramento (<code>sanitize: <span id="sanitizeFlagLabel">true</span></code>)
+                                    </span>
+                                    <span id="sanitizeStatusBadge"
+                                        style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; color: #34D399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);">ON</span>
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    Desmarque para testar o comportamento sem mascaramento (dados brutos em <code>$_POST</code>, mensagens e previews).
+                                </div>
+                            </div>
+                        </label>
 
                         <button type="submit" id="btnSanitize" class="btn-primary" style="margin-bottom: 16px;">
                             <span>🛡️ Sanitizar Requisição & Interceptar Erro</span>
@@ -1774,15 +1824,16 @@
                                 "token": "<span class='exposed'>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</span>",
                                 "cpf": "<span class='exposed'>123.456.789-10</span>",
                                 "credit_card": "<span class='exposed'>4532 1122 3344 9876</span>",
-                                "email": "<span class='exposed'>suporte.tech@empresa.com.br</span>"
+                                "email": "<span class='exposed'>suporte.tech@empresa.com.br</span>",
+                                "dsn": "<span class='exposed'>mysql://admin:SegredoDB@10.0.0.20:3306/salvar_prod</span>"
                                 }
                             </div>
                         </div>
 
                         <div class="code-panel">
-                            <div class="code-panel-header success">
-                                <span>✅ Payload Sanitizado ($context->requestData)</span>
-                                <span>Protegido</span>
+                            <div id="sanitizedPanelHeader" class="code-panel-header success">
+                                <span id="sanitizedPanelTitle">✅ Payload Sanitizado ($context->requestData)</span>
+                                <span id="sanitizedPanelBadge">Protegido</span>
                             </div>
                             <div class="code-content" id="sanitizedPayloadView">
                                 {
@@ -1791,7 +1842,8 @@
                                 "token": "<span class='masked'>********</span>",
                                 "cpf": "<span class='masked'>***.***.789-10</span>",
                                 "credit_card": "<span class='masked'>**** **** **** 9876</span>",
-                                "email": "<span class='masked'>sup*********@empresa.com.br</span>"
+                                "email": "<span class='masked'>sup*********@empresa.com.br</span>",
+                                "dsn": "<span class='masked'>********</span>"
                                 }
                             </div>
                         </div>
@@ -1894,7 +1946,7 @@ $tracker = new ErrorTracker($cache, 3600);
 $tracker->parameters(
     appName: 'MeuERP',
     environment: 'production',
-    serverName: gethostname(),
+    serverName: gethostname() ?: null,
     userResolver: fn() => Auth::user()?->nome ?? $_SESSION['usuario']['nome'] ?? null,
 );
 
@@ -1946,9 +1998,11 @@ $tracker = ErrorTracker::create(
 $tracker->parameters(
     appName: 'Checkout API',
     environment: 'production',
-    serverName: gethostname(),
+    serverName: gethostname() ?: null,
     userResolver: fn() => $_SESSION['usuario']['email'] ?? null,
-    extraContext: ['regiao' => 'sa-east-1']
+    extraContext: ['regiao' => 'sa-east-1'],
+    maskedKeys: ['chave_pix'],
+    sanitize: true // Padrão true; use false para desativar todo o mascaramento
 );
 
 // Ativação dos interceptadores nativos
@@ -2287,10 +2341,34 @@ try {
             throw lastError || new Error('Não foi possível obter resposta JSON válida da API.');
         }
 
+        function isSanitizationEnabled() {
+            return document.getElementById('inputSanitize')?.checked ?? true;
+        }
+
+        function updateSanitizeToggleUi() {
+            const enabled = isSanitizationEnabled();
+            const flagLabel = document.getElementById('sanitizeFlagLabel');
+            const statusBadge = document.getElementById('sanitizeStatusBadge');
+            const btn = document.getElementById('btnSanitize');
+
+            if (flagLabel) flagLabel.textContent = enabled ? 'true' : 'false';
+            if (statusBadge) {
+                statusBadge.textContent = enabled ? 'ON' : 'OFF';
+                statusBadge.style.color = enabled ? '#34D399' : '#F87171';
+                statusBadge.style.background = enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 81, 73, 0.15)';
+                statusBadge.style.borderColor = enabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(248, 81, 73, 0.35)';
+            }
+            if (btn) {
+                btn.innerHTML = enabled
+                    ? '<span>🛡️ Sanitizar Requisição & Interceptar Erro</span>'
+                    : '<span>⚠️ Enviar Sem Sanitização (sanitize: false)</span>';
+            }
+        }
+
         // Dispara Incidente via API
         async function triggerIncident(action, isInitial = false) {
             try {
-                const data = await callApi({ action: action });
+                const data = await callApi({ action: action, sanitize: isSanitizationEnabled() });
                 currentIncidentData = data;
                 updatePreviews(data);
 
@@ -2333,7 +2411,7 @@ try {
             progressBar.style.width = '30%';
 
             try {
-                const data = await callApi({ action: 'test_flood' });
+                const data = await callApi({ action: 'test_flood', sanitize: isSanitizationEnabled() });
                 progressBar.style.width = '80%';
 
                 setTimeout(() => {
@@ -2377,14 +2455,17 @@ try {
             const btn = document.getElementById('btnSanitize');
             btn.disabled = true;
 
+            const sanitizeEnabled = isSanitizationEnabled();
             const payload = {
                 action: 'sanitization',
+                sanitize: sanitizeEnabled,
                 username: document.getElementById('inputUsername').value,
                 password: document.getElementById('inputPassword').value,
                 token: document.getElementById('inputToken').value,
                 cpf: document.getElementById('inputCpf').value,
                 credit_card: document.getElementById('inputCard').value,
-                email: document.getElementById('inputEmail').value
+                email: document.getElementById('inputEmail').value,
+                dsn: document.getElementById('inputDsn').value
             };
 
             const rawHtml = '{\n' +
@@ -2393,7 +2474,8 @@ try {
                 `  "token": "<span class='exposed'>${escapeHtml(payload.token)}</span>",\n` +
                 `  "cpf": "<span class='exposed'>${escapeHtml(payload.cpf)}</span>",\n` +
                 `  "credit_card": "<span class='exposed'>${escapeHtml(payload.credit_card)}</span>",\n` +
-                `  "email": "<span class='exposed'>${escapeHtml(payload.email)}</span>"\n` +
+                `  "email": "<span class='exposed'>${escapeHtml(payload.email)}</span>",\n` +
+                `  "dsn": "<span class='exposed'>${escapeHtml(payload.dsn)}</span>"\n` +
                 '}';
             document.getElementById('rawPayloadView').innerHTML = rawHtml;
 
@@ -2406,17 +2488,35 @@ try {
                 updateHistoryCount();
 
                 const san = data.context?.sanitized_post || data.context?.sanitized_payload?.post || {};
+                const cls = sanitizeEnabled ? 'masked' : 'exposed';
                 const sanHtml = '{\n' +
-                    `  "username": "${escapeHtml(san.username || payload.username)}",\n` +
-                    `  "password": "<span class='masked'>${escapeHtml(san.password || '********')}</span>",\n` +
-                    `  "token": "<span class='masked'>${escapeHtml(san.token || '********')}</span>",\n` +
-                    `  "cpf": "<span class='masked'>${escapeHtml(san.cpf || '***.***.***-**')}</span>",\n` +
-                    `  "credit_card": "<span class='masked'>${escapeHtml(san.credit_card || '**** **** **** ****')}</span>",\n` +
-                    `  "email": "<span class='masked'>${escapeHtml(san.email || '')}</span>"\n` +
+                    `  "username": "${escapeHtml(san.username ?? payload.username)}",\n` +
+                    `  "password": "<span class='${cls}'>${escapeHtml(san.password ?? '')}</span>",\n` +
+                    `  "token": "<span class='${cls}'>${escapeHtml(san.token ?? '')}</span>",\n` +
+                    `  "cpf": "<span class='${cls}'>${escapeHtml(san.cpf ?? '')}</span>",\n` +
+                    `  "credit_card": "<span class='${cls}'>${escapeHtml(san.credit_card ?? '')}</span>",\n` +
+                    `  "email": "<span class='${cls}'>${escapeHtml(san.email ?? '')}</span>",\n` +
+                    `  "dsn": "<span class='${cls}'>${escapeHtml(san.dsn ?? '')}</span>"\n` +
                     '}';
                 document.getElementById('sanitizedPayloadView').innerHTML = sanHtml;
 
-                showToast('Dados sensíveis mascarados com sucesso!', '🔒');
+                const headerEl = document.getElementById('sanitizedPanelHeader');
+                const titleEl = document.getElementById('sanitizedPanelTitle');
+                const badgeEl = document.getElementById('sanitizedPanelBadge');
+                if (headerEl) headerEl.className = `code-panel-header ${sanitizeEnabled ? 'success' : 'danger'}`;
+                if (titleEl) {
+                    titleEl.textContent = sanitizeEnabled
+                        ? '✅ Payload Sanitizado ($context->requestData)'
+                        : '⚠️ Payload Sem Sanitização ($context->requestData)';
+                }
+                if (badgeEl) badgeEl.textContent = sanitizeEnabled ? 'Protegido' : 'Exposto (sanitize: false)';
+
+                showToast(
+                    sanitizeEnabled
+                        ? 'Dados sensíveis e de conexão mascarados com sucesso!'
+                        : 'Sanitização desligada: payload capturado sem mascaramento!',
+                    sanitizeEnabled ? '🔒' : '⚠️'
+                );
             } catch (err) {
                 console.error('Erro na sanitização:', err);
                 showToast('Falha ao sanitizar payload: ' + (err.message || ''), '⚠️');

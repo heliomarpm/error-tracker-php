@@ -25,7 +25,7 @@
 
 * **Captura Global no Runtime:** Intercepta `Exceptions`, `Fatal Errors`, `Warnings` e `Notices` automaticamente.
 * **Compatibilidade PSR-3:** Implementa `Psr\Log\LoggerInterface`, podendo ser injetado em qualquer framework ou container moderno.
-* **Sanitização Inteligente:** Mascara automaticamente dados sensíveis em requisições (`$_POST`, `$_SERVER`), ocultando senhas totalmente e ofuscando e-mails, CPFs e Cartões de Crédito de forma parcial (ex: `hel***@gmail.com`, `***.***.789-10`).
+* **Sanitização Inteligente (Opcional):** Mascara automaticamente dados sensíveis em requisições (`$_POST`, `$_SERVER`, `context`) e dados de conexão (DSNs, URIs com credenciais, argumentos de `PDO`/`mysqli`/SMTP em traces e mensagens de erro de banco), ocultando senhas totalmente e ofuscando e-mails, CPFs e Cartões de Crédito de forma parcial (ex: `hel***@gmail.com`, `***.***.789-10`). Habilitada por padrão; pode ser desativada com `sanitize: false`.
 * **Sistema Anti-flood (Deduplicação):** Integração com cache PSR-16 ([FileCache](src/Cache/FileCache.php) nativo ou Redis/Memcached) silenciando alertas idênticos dentro da janela de TTL.
 * **Rota de Fuga (Failsafe):** Permite registrar um *callback* para assumir o controle da tela em falhas críticas (ex: redirecionar para tela 500 amigável ou emitir Problem Details JSON).
 * **Templates Externos Customizáveis:** Templates desacoplados em `src/Templates/` para E-mail (HTML responsivo ou Texto Puro) e Log em arquivo com tags substituíveis (`{{severity}}`, `{{message}}`, `{{file}}`, `{{line}}`, etc.). Consulte o [Guia de Templates](docs/TEMPLATES.md).
@@ -116,6 +116,7 @@ O método `parameters()` (ou o construtor / factory `ErrorTracker::create()`) ce
 | `userResolver`| `?callable` | Callback dinâmico chamado no instante do erro | Resolução sob demanda de sessão ou autenticação do framework |
 | `extraContext`| `array` | Metadados adicionais da aplicação | Anexado a requisições e visível em todos os payloads e templates |
 | `maskedKeys`  | `array` | Chaves adicionais sensíveis para blackout | Blackout no sanitizador LGPD (`DataSanitizer`) |
+| `sanitize`    | `bool`  | Habilita ou desabilita o mascaramento (padrão `true`) | Controle global de mascaramento de payloads, traces e conexões |
 
 ### Configuração com Named Arguments (PHP 8.1+)
 ```php

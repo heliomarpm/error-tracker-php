@@ -125,6 +125,7 @@ if (is_string($inputRaw) && strlen($inputRaw) > 65536) {
 
 $input = !empty($inputRaw) ? (json_decode($inputRaw, true) ?: []) : $_POST;
 $action = (string)($input['action'] ?? ($_GET['action'] ?? 'info'));
+$sanitize = !array_key_exists('sanitize', $input) || filter_var($input['sanitize'], FILTER_VALIDATE_BOOLEAN);
 
 // Instancia handlers para geração dos previews mockados
 $emailHtmlHandler = new EmailHandler('suporte@empresa.com', format: 'html');
@@ -175,7 +176,7 @@ $buildPreviews = function (?ErrorContext $context) use (
 try {
     if ($action === 'test_flood') {
         // Simulação Anti-Flood: 50 disparos simultâneos
-        $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 60);
+        $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 60, sanitize: $sanitize);
         $tracker->parameters(
             appName: 'ErrorTracker Demo',
             environment: 'sandbox',
@@ -222,7 +223,7 @@ try {
     }
 
     // Ações de simulação de erro e sanitização
-    $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 0);
+    $tracker = new ErrorTracker($memoryCache, cacheTtlSeconds: 0, sanitize: $sanitize);
     $tracker->parameters(
         appName: 'ErrorTracker Demo',
         environment: 'sandbox',
@@ -232,7 +233,8 @@ try {
     $tracker->addHandler($captureHandler);
 
     if ($action === 'sanitization') {
-        // Simula submissão de formulário com dados altamente confidenciais
+        $dsn = (string)($input['dsn'] ?? 'mysql://admin:SegredoDB@10.0.0.20:3306/salvar_prod');
+        // Simula submissão de formulário com dados altamente confidenciais e de conexão
         $_POST = [
             'username' => (string)($input['username'] ?? 'heliomar_dev'),
             'password' => (string)($input['password'] ?? 'minhaSenhaSuperSecreta123'),
@@ -240,15 +242,16 @@ try {
             'cpf' => (string)($input['cpf'] ?? '123.456.789-10'),
             'credit_card' => (string)($input['credit_card'] ?? '4532 1122 3344 9876'),
             'email' => (string)($input['email'] ?? 'suporte.tech@empresa.com.br'),
+            'dsn' => $dsn,
         ];
 
-        $tracker->error('Erro no processamento do checkout com dados do cliente');
+        $tracker->error("Falha de conexão ao processar checkout em {$dsn} (Access denied for user 'root'@'10.0.0.20')");
     } elseif ($action === 'notice') {
         $tracker->notice('Tentativa de acesso com cupom expirado: ' . ($input['coupon'] ?? 'PROMO2026'));
     } elseif ($action === 'warning') {
         $tracker->warning('Uso de endpoint depreciado v1/pedidos detectado.');
     } elseif ($action === 'exception') {
-        $rootCause = new PDOException('SQLSTATE[HY000] [2002] Connection timed out ao conectar com cluster MySQL (porta 3306)', 2002);
+        $rootCause = new PDOException("SQLSTATE[HY000] [1045] Access denied for user 'root'@'10.0.0.20' em mysql:host=10.0.0.20;port=3306;dbname=salvar_prod", 1045);
         $fakeException = new RuntimeException(
             (string)($input['error_message'] ?? 'Falha ao processar pagamento com cartão: Timeout no gateway de transações'),
             500,
@@ -281,6 +284,7 @@ try {
             'trace' => $capturedContext->trace,
             'sanitized_payload' => $capturedContext->requestData,
             'sanitized_post' => $capturedContext->requestData['post'] ?? [],
+            'sanitize' => $sanitize,
             'timestamp' => date('Y-m-d H:i:s'),
         ],
         'previews' => $buildPreviews($capturedContext),
