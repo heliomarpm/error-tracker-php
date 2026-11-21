@@ -5,6 +5,13 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 
+# [1.4.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.3.0...v1.4.0) (2026-11-21)
+
+
+### Features
+
+* **sanitizer:** 🛡️ mascarar dados de conexão por padrão ([087c7b2](https://github.com/heliomarpm/error-tracker-php/commit/087c7b23b744f11e6ac000e9967763410b259398))
+
 # [1.3.0](https://github.com/heliomarpm/error-tracker-php/compare/v1.2.1...v1.3.0) (2026-11-19)
 
 
